@@ -32,6 +32,7 @@ static Tr_level outermost = NULL;
 
 Tr_expList Tr_ExpList(Tr_exp head, Tr_expList tail)
 {
+	log("Tr_Explist\n");
 	Tr_expList explist = (Tr_expList)checked_malloc(sizeof(*explist));
 	explist->head = head;
 	explist->tail = tail;
@@ -40,6 +41,7 @@ Tr_expList Tr_ExpList(Tr_exp head, Tr_expList tail)
 
 Tr_access Tr_Access(Tr_level level, F_access access)
 {
+	log("Tr_access\n");
 	Tr_access traccess = (Tr_access)checked_malloc(sizeof(*traccess));
 	traccess->level = level;
 	traccess->access = access;
@@ -48,6 +50,7 @@ Tr_access Tr_Access(Tr_level level, F_access access)
 
 Tr_accessList Tr_AccessList(Tr_access head, Tr_accessList tail)
 {
+	log("Tr_accesslist\n");
 	Tr_accessList accesses = (Tr_accessList)checked_malloc(sizeof(*accesses));
 	accesses->head = head;
 	accesses->tail = tail;
@@ -58,6 +61,7 @@ Tr_accessList Tr_AccessList(Tr_access head, Tr_accessList tail)
 // create parameter: level->formals (Tr_accessList)
 static Tr_accessList Tr_makeFormals(Tr_level level, F_accessList accesses)
 {
+	log("Tr_accesslist\n");
 	if (accesses) {
 		return Tr_AccessList(Tr_Access(level, accesses->head), Tr_makeFormals(level, accesses->tail));
 	} else {
@@ -69,6 +73,7 @@ static Tr_accessList Tr_makeFormals(Tr_level level, F_accessList accesses)
 // F_frame F_newFrame(Temp_label name, U_boolList formals)
 Tr_level Tr_outermost(void)
 {
+	log("Tr_outermost\n");
 	//if already exist
 	if (outermost) {
 		return outermost;
@@ -86,6 +91,7 @@ Tr_level Tr_outermost(void)
 //static F_accessList F_makeFormals(U_boolList formals, int offset)
 Tr_level Tr_newLevel(Tr_level parent, Temp_label name, U_boolList formals)
 {
+	log("Tr_newlevel\n");
 	Tr_level level = (Tr_level)checked_malloc(sizeof(*level));
 	level->frame = F_newFrame(name, U_BoolList(TRUE, formals));
 	level->parent = parent;
@@ -100,12 +106,14 @@ Tr_level Tr_newLevel(Tr_level parent, Temp_label name, U_boolList formals)
 //};
 Tr_accessList Tr_formals(Tr_level level)
 {
+	log("Tr_formals\n");
 	return level->formals;
 }
 
 //F_access F_allocLocal(F_frame frame, bool escape)
 Tr_access Tr_allocLocal(Tr_level level, bool escape)
 {
+	log("Tr_allocLocal\n");
 	return Tr_Access(level, F_allocLocal(level->frame, escape));
 }
 
@@ -114,6 +122,7 @@ Tr_access Tr_allocLocal(Tr_level level, bool escape)
 //F_accessList F_getFormals(F_frame frame)
 static T_exp staticlink(Tr_level level, Tr_level dest)
 {
+	log("staticlink\n");
 	T_exp ex = T_Temp(F_FP()); //获取本level的栈帧
 	Tr_level curlevel = level;
 	while (curlevel && curlevel != dest) 
@@ -132,7 +141,10 @@ static T_exp staticlink(Tr_level level, Tr_level dest)
 
 // return parameter
 // same as Tr_getResult() in PPT
-F_fragList Tr_getFragList(void)  { return frags; }
+F_fragList Tr_getFragList(void)  { 
+	log("Tr_getResult\n");
+	return frags; 
+}
 
 /****************************************************************/
 
@@ -148,6 +160,7 @@ F_fragList Tr_getFragList(void)  { return frags; }
 /* 表示“需要填充标号的地点”组成的表 */
 static patchList PatchList(Temp_label *head, patchList tail)
 {
+	log("PatchList\n");
 	patchList list;
 
 	list = (patchList)checked_malloc(sizeof(struct patchList_));
@@ -159,12 +172,14 @@ static patchList PatchList(Temp_label *head, patchList tail)
 /* 通过调用doPatch(e->u.cx.trues.t)利用标号t来填充真值标号回填表 */
 void doPatch(patchList tList, Temp_label label)
 {
+	log("doPatch\n");
 	for(; tList; tList = tList->tail)
 		*(tList->head) = label;
 }
 
 patchList joinPatch(patchList first, patchList second)
 {
+	log("joinPatch\n");
 	if(!first) return second;
 	for(; first->tail; first = first->tail);
 	first->tail = second;
@@ -176,6 +191,7 @@ patchList joinPatch(patchList first, patchList second)
 /* Ex代表“表达式”，表示为Tr_exp */
 static Tr_exp Tr_Ex(T_exp ex)
 {
+	log("Tr_Ex\n");
 	Tr_exp tr_ex = (Tr_exp)checked_malloc(sizeof(*tr_ex));
 	tr_ex->kind = Tr_ex;
 	tr_ex->u.ex = ex;
@@ -185,6 +201,7 @@ static Tr_exp Tr_Ex(T_exp ex)
 /* Nx代表“无结果语句”，表示为Tree语句 */
 static Tr_exp Tr_Nx(T_stm nx)
 {
+	log("Tr_Nx\n");
 	Tr_exp tr_nx = (Tr_exp)checked_malloc(sizeof(*tr_nx));
 	tr_nx->kind = Tr_nx;
 	tr_nx->u.nx = nx;
@@ -194,6 +211,7 @@ static Tr_exp Tr_Nx(T_stm nx)
 /* Cx代表“条件语句”，表示为一个可能转移到两个标号之一的语句 */
 static Tr_exp Tr_Cx(patchList trues, patchList falses, T_stm stm)
 {
+	log("Tr_Cx\n");
 	Tr_exp tr_cx = (Tr_exp)checked_malloc(sizeof(*tr_cx));
 	tr_cx->kind = Tr_cx;
 	tr_cx->u.cx.trues = trues;
@@ -205,7 +223,7 @@ static Tr_exp Tr_Cx(patchList trues, patchList falses, T_stm stm)
 /* 强制类型转换函数 */
 /* 主要用于Tr_exp的加法 */
 static T_exp unEx(Tr_exp e)
-{
+{	log("unEx\n");
 	switch (e->kind) 
 	{
 		case Tr_ex:
@@ -238,7 +256,7 @@ static T_exp unEx(Tr_exp e)
 
 /* 主要用于SEQ */
 static T_stm unNx(Tr_exp e)
-{
+{	log("unNx\n");
 	switch (e->kind)
 	{
 		case Tr_ex:
@@ -261,6 +279,7 @@ static T_stm unNx(Tr_exp e)
 /* static patchList PatchList(Temp_label *head, patchList tail) */
 static struct Cx unCx(Tr_exp e)
 {
+	log("unCx\n");
 	switch (e->kind)
 	{
 		case Tr_ex:
@@ -299,6 +318,7 @@ static T_Cx unCx(Tr_exp e)*/
 //T_exp F_Exp(F_access access, T_exp fp)
 Tr_exp Tr_simpleVar(Tr_access access, Tr_level level)
 {
+	log("Tr_simpleVar\n");
 	//要考虑静态链
 	T_exp fp = staticlink(level, access->level); //返回fp
 	T_exp ex = F_Exp(access->access, fp);
@@ -308,6 +328,7 @@ Tr_exp Tr_simpleVar(Tr_access access, Tr_level level)
 //EX, 首地址，field数, address of record
 Tr_exp Tr_fieldVar(Tr_exp addr, int nth)
 {
+	log("Tr_fieldVar\n");
 	T_exp ex = T_Mem(T_Binop(T_plus, unEx(addr), T_Const(nth * F_wordSize)));
 	return Tr_Ex(ex);
 }
@@ -316,6 +337,7 @@ Tr_exp Tr_fieldVar(Tr_exp addr, int nth)
 //address (i-l)*s + a
 Tr_exp Tr_subscriptVar(Tr_exp addr, Tr_exp index)
 {
+	log("Tr_subscriptVar\n");
 	//address = addr + index * wordsize
 	//默认底限low为0
 	T_exp ex = T_Mem(
@@ -332,19 +354,22 @@ Tr_exp Tr_subscriptVar(Tr_exp addr, Tr_exp index)
 
 //EX, const 0
 Tr_exp Tr_nilExp(void)
-{
+{	
+	log("Tr_nilExp\n");
 	return Tr_Ex(T_Const(0));
 }
 
 //EX, int值
 Tr_exp Tr_intExp(int n)
 {
+	log("Tr_intExp\n");
 	return Tr_Ex(T_Const(n));
 }
 
 //EX, string值
 Tr_exp Tr_stringExp(string s)
 {
+	log("Tr_stringExp\n");
 	//添加全局静态变量frags
 	//看看什么时候会用到procFrag
 	Temp_label label = Temp_newlabel(); //变量label
@@ -377,6 +402,7 @@ static T_expList makeCallArgs(Tr_expList params)
 //Both the level of f and the level of the function calling f are required to calculate s1
 Tr_exp Tr_callExp(Tr_level callee, Temp_label func, Tr_expList params, Tr_level caller)
 {
+	log("Tr_callExp\n");
 	T_exp ex = T_Call(T_Name(func), 
 		T_ExpList(staticlink(caller, callee->parent), makeCallArgs(params)));
 	return Tr_Ex(ex);
@@ -385,6 +411,7 @@ Tr_exp Tr_callExp(Tr_level callee, Temp_label func, Tr_expList params, Tr_level 
 //EX, 算术运算，操作符，左操作数，右操作数
 Tr_exp Tr_opaluExp(A_oper oper, Tr_exp left, Tr_exp right)
 {
+	log("Tr_opaluExp\n");
 	T_exp ex;
 	T_exp l = unEx(left), r = unEx(right);
 
@@ -411,6 +438,7 @@ Tr_exp Tr_opaluExp(A_oper oper, Tr_exp left, Tr_exp right)
 //CX, 比较运算，操作符，左操作数，右操作数
 Tr_exp Tr_opcmpExp(A_oper oper, Tr_exp left, Tr_exp right, bool isStrCmp)
 {
+	log("Tr_opcmpExp\n");
 	struct Cx cx; //stm, trues, false
 	T_exp l, f;
 
@@ -476,6 +504,7 @@ static T_stm makeRecordFields(Tr_expList fields, Temp_temp r, int n)
 //	returns the pointer into a new temporary r
 Tr_exp Tr_recordExp(Tr_expList fields, int n)
 {
+	log("Tr_recordExp\n");
 	Temp_temp r; //return value
 	
 	//temp r 的值是 old ptr，即块的起始位置
@@ -491,6 +520,7 @@ Tr_exp Tr_recordExp(Tr_expList fields, int n)
 //EX, 序列, 返回最后一个表达式产生的结果
 Tr_exp Tr_seqExp(Tr_exp e1, Tr_exp e2)
 {
+	log("Tr_seqExp\n");
 	T_exp ex = T_Eseq(unNx(e1), unEx(e2));
 	return Tr_Ex(ex);
 }
@@ -498,6 +528,7 @@ Tr_exp Tr_seqExp(Tr_exp e1, Tr_exp e2)
 //NX, 条件判断，then
 Tr_exp Tr_assignExp(Tr_exp var, Tr_exp exp)
 {
+	log("Tr_assignExp\n");
 	T_stm nx = T_Move(unEx(var), unEx(exp));
 	return Tr_Nx(nx);
 }
@@ -505,6 +536,7 @@ Tr_exp Tr_assignExp(Tr_exp var, Tr_exp exp)
 //NX, 条件判断，then
 Tr_exp Tr_ifExp(Tr_exp test, Tr_exp then)
 {
+	log("Tr_ifExp\n");
 	struct Cx cx = unCx(test);
 	//label: true, false
 	Temp_label t = Temp_newlabel(), f = Temp_newlabel();
@@ -522,6 +554,7 @@ Tr_exp Tr_ifExp(Tr_exp test, Tr_exp then)
 /* if-then-else的数据类型是then和elsee的type */
 Tr_exp Tr_ifelseExp(Tr_exp test, Tr_exp then, Tr_exp elsee)
 {
+	log("Tr_ifelseExp\n");
 	struct Cx cx = unCx(test);
 	Temp_temp r = Temp_newtemp();
 	//label: true, false
@@ -544,6 +577,7 @@ Tr_exp Tr_ifelseExp(Tr_exp test, Tr_exp then, Tr_exp elsee)
 //done label是在参数中提供的
 Tr_exp Tr_whileExp(Tr_exp test, Tr_exp body, Temp_label done)
 {
+	log("Tr_whileExp\n");
 	struct Cx cx = unCx(test);
 	//label: loop/body, test, done
 	Temp_label l = Temp_newlabel(), t = Temp_newlabel();
@@ -571,6 +605,7 @@ Loop:	i := i + 1
 */
 Tr_exp Tr_forExp(Tr_exp lo, Tr_exp hi, Tr_exp body, Tr_access access, Tr_level level, Temp_label done)
 {
+	log("Tr_forExp\n");
 	//DECLARE loop variable, init
 	//T_exp ex = F_Exp(access->access, fp);
 	Tr_exp i = Tr_simpleVar(access, level);
@@ -615,6 +650,7 @@ Tr_exp Tr_forExp(Tr_exp lo, Tr_exp hi, Tr_exp body, Tr_access access, Tr_level l
 //TODO: 这在semant中要怎么对接呢？
 Tr_exp Tr_breakExp(Temp_label done)
 {
+	log("Tr_breakExp\n");
 	T_stm nx = T_Jump(T_Name(done), Temp_LabelList(done, NULL));
 	return Tr_Nx(nx);
 }
@@ -628,6 +664,7 @@ Tr_exp Tr_breakExp(Temp_label done)
 //		T_ExpList(n, T_ExpList(b, NULL)))
 Tr_exp Tr_arrayExp(Tr_exp size, Tr_exp init)
 {
+	log("Tr_arrayExp\n");
 	Temp_temp r; //return value 
 	Temp_temp s = Temp_newtemp(), i = Temp_newtemp();
 
@@ -644,6 +681,7 @@ Tr_exp Tr_arrayExp(Tr_exp size, Tr_exp init)
 /****************************************************************/
 
 T_stm Tr_procEntryExit(Tr_exp body, Tr_level level, Tr_accessList formals) {
+	log("TR-procEntryExit\n");
 	/*Temp_temp t = F_RV();*/
 	//Temp_temp t = Temp_newtemp();
 	return T_Move(T_Temp(F_RV()), unEx(body));
@@ -652,6 +690,7 @@ T_stm Tr_procEntryExit(Tr_exp body, Tr_level level, Tr_accessList formals) {
 /* struct Tr_level_ { F_frame frame; Tr_level parent;}; */
 void Tr_functionDec(Tr_exp exp, Tr_level level)
 {
+	log("Tr_functionDec\n");
 	//return T_Move(T_Temp(F_FP()), unEx(stm));
 	
 	T_stm stm = Tr_procEntryExit(exp, level, level->formals);
