@@ -10,6 +10,11 @@
 #include "translate.h"
 #include <assert.h>
 
+#define TRANSLATE_DEBUG 1
+#define log(...)\
+	if(TRANSLATE_DEBUG)\
+		fprintf(stdout, __VA_ARGS__);
+
 //LAB5: you can modify anything you want.
 //工具函数就写成static类型，不用在h文件中声明
 

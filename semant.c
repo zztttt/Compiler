@@ -12,6 +12,11 @@
 #include "table.h"
 #include "printtree.c"
 
+#define SEMENT_DEBUG 1
+
+#define log(...)\
+	if(SEMENT_DEBUG)\
+		EM_error(__VA_ARGS__);
 
 /*Lab4: Your implementation of lab4*/
 
@@ -105,7 +110,7 @@ struct expty transVar(S_table venv, S_table tenv, A_var v, Tr_level level, Temp_
 	switch(v->kind){
 		case A_simpleVar:{
 			//sample: arr
-			//EM_error(v->pos, "A_simpleVar: %s", S_name(v->u.simple));
+			log(v->pos, "A_simpleVar: %s", S_name(v->u.simple));
 			E_enventry var_entry = S_look(venv, v->u.simple);
 			assert(var_entry);
 			if (!var_entry || var_entry->kind != E_varEntry) {
@@ -119,7 +124,7 @@ struct expty transVar(S_table venv, S_table tenv, A_var v, Tr_level level, Temp_
 			return expTy(tr_exp, actual_ty(var_entry->u.var.ty));
 		}
 		case A_fieldVar: {
-			//EM_error(v->pos, "A_fieldVar: %s", S_name(v->u.field.sym));
+			log(v->pos, "A_fieldVar: %s", S_name(v->u.field.sym));
 			//sample: arr.field
 			A_var var = v->u.field.var;
 			S_symbol sym = v->u.field.sym;
@@ -151,7 +156,7 @@ struct expty transVar(S_table venv, S_table tenv, A_var v, Tr_level level, Temp_
 		}
 		case A_subscriptVar: {
 			//sample: var[exp]
-			//EM_error(v->pos, "A_subscriptVar");
+			log(v->pos, "A_subscriptVar");
 			A_var typ = v->u.subscript.var;
 			A_exp exp = v->u.subscript.exp;
 			struct expty lvalue = transVar(venv, tenv, typ, level, tl);
@@ -182,23 +187,23 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 	assert(a);
 	switch(a->kind){
 		case A_varExp:{
-			//EM_error(a->pos, "A_varExp");
+			log(a->pos, "A_varExp");
 			return transVar(venv, tenv, a->u.var, level, tl);
 		}
 		case A_intExp:{
-			//EM_error(a->pos, "A_intExp: intt:%d", a->u.intt);
+			log(a->pos, "A_intExp: intt:%d", a->u.intt);
 			return expTy(Tr_intExp(a->u.intt), Ty_Int());
 		}
 		case A_stringExp:{
-			//EM_error(a->pos, "A_stringExp: stringg: %s", a->u.stringg);
+			log(a->pos, "A_stringExp: stringg: %s", a->u.stringg);
 			return expTy(Tr_stringExp(a->u.stringg), Ty_String());
 		}
 		case A_nilExp:{
-			//EM_error(a->pos, "A_nilExp");
+			log(a->pos, "A_nilExp");
 			return expTy(Tr_nilExp(), Ty_Nil());
 		}
 		case A_breakExp:{
-			//EM_error(a->pos, "A_breakExp");
+			log(a->pos, "A_breakExp");
 			struct expty exp_ty;
 			if(tl){
 				exp_ty = expTy(Tr_breakExp(tl), Ty_Void());
@@ -208,7 +213,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 			return exp_ty;
 		}
 		case A_callExp:{
-			//EM_error(a->pos, "A_callExp: %s", S_name(a->u.call.func));
+			log(a->pos, "A_callExp: %s", S_name(a->u.call.func));
 			S_symbol func = a->u.call.func;
 			E_enventry func_entry = S_look(venv, func);
 			if (!func_entry || func_entry->kind != E_funEntry) {
@@ -252,7 +257,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 		}
 		case A_recordExp:{
 			//sample: type{field, field : name=exp}
-			//EM_error(a->pos, "A_recordExp: sym:%s", S_name(a->u.record.typ));
+			log(a->pos, "A_recordExp: sym:%s", S_name(a->u.record.typ));
 			Ty_ty type = S_look(tenv, a->u.record.typ);
 			
 			type = actual_ty(type);
@@ -307,7 +312,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 			return expTy(tr_exp, type);
 		}
 		case A_seqExp:{
-			//EM_error(a->pos, "A_seqExp");
+			log(a->pos, "A_seqExp");
 			A_expList seq = a->u.seq;
 
 			struct expty exp_res;
@@ -327,10 +332,10 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 			A_var var = a->u.assign.var;
 			A_exp exp = a->u.assign.exp;
 			if(var->kind == A_simpleVar){
-				//EM_error(a->pos, "A_assignExp: %s", S_name(v->u.simple));
+				log(a->pos, "A_assignExp: %s", S_name(var->u.simple));
 			}
 			else{
-				//EM_error(a->pos, "A_assignExp: field type");
+				log(a->pos, "A_assignExp: field type");
 			}
 			
 
@@ -350,7 +355,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 		}
 		case A_ifExp:{
 			//if then else
-			//EM_error(a->pos, "A_ifExp"); 
+			log(a->pos, "A_ifExp"); 
 			struct expty test = transExp(venv, tenv, a->u.iff.test, level, tl);
 			struct expty then = transExp(venv, tenv, a->u.iff.then, level, tl);
 			struct expty elsee;
@@ -373,7 +378,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 			}
 			else{//just if-then
 				//printf("just then:%d\n", a->u.iff.test->pos);
-				//EM_error(a->u.iff.test->pos, "just then");
+				log(a->u.iff.test->pos, "just then");
 				//printf("test:%d\n", a->u.iff.test->kind);
 				elsee = expTy(NULL, Ty_Void());
 				//printf("then.kind:%d\n", actual_ty(then.ty)->kind);
@@ -389,7 +394,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 		}
 		case A_whileExp:{
 			// while test do body
-			//EM_error(a->pos, "A_whileExp");
+			log(a->pos, "A_whileExp");
 			Temp_label done = Temp_newlabel();
 			struct expty test = transExp(venv, tenv, a->u.whilee.test, level, tl);
 			struct expty body = transExp(venv, tenv, a->u.whilee.body, level, tl);
@@ -407,7 +412,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 		}
 		case A_forExp:{
 			//sample: for var := lo to hi do body
-			//EM_error(a->pos, "A_forExp");
+			log(a->pos, "A_forExp");
 			
 			Temp_label done = Temp_newlabel();
 			S_symbol var = a->u.forr.var;
@@ -442,7 +447,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 			return expTy(tr_exp, Ty_Void());
 		}
 		case A_opExp:{
-			//EM_error(a->pos, "A_opExp: %d", a->u.op.oper);
+			log(a->pos, "A_opExp: %d", a->u.op.oper);
 			A_oper oper = a->u.op.oper;
 			struct expty left = transExp(venv, tenv, a->u.op.left, level, tl);
 			struct expty right = transExp(venv, tenv, a->u.op.right, level, tl);
@@ -476,7 +481,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 		}
 		//update for lab5
 		case A_letExp:{
-			//EM_error(a->pos, "A_letExp");
+			log(a->pos, "A_letExp");
 			struct expty exp_ty;
 			Tr_exp tr_exp = Tr_nilExp();
 			A_decList d;
@@ -498,7 +503,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level level, Temp_
 		//update for lab5
 		case A_arrayExp: {
 			//sample: typ array[size] of init
-			//EM_error(a->pos, "A_arrayExp: %s", S_name(a->u.array.typ));
+			log(a->pos, "A_arrayExp: %s", S_name(a->u.array.typ));
 			struct expty size = transExp(venv, tenv, a->u.array.size, level, tl);
 			struct expty init = transExp(venv, tenv, a->u.array.init, level, tl);
 			Ty_ty type = S_look(tenv, a->u.array.typ);
@@ -537,10 +542,10 @@ Tr_exp transDec(S_table venv, S_table tenv, A_dec d, Tr_level level, Temp_label 
 		case A_varDec:{
 			//printf("111\n");
 			if(!d->u.var.typ){
-				//EM_error(d->pos, "A_varDec: sym:%s notype", S_name(d->u.var.var));
+				log(d->pos, "A_varDec: sym:%s notype", S_name(d->u.var.var));
 			}
 			else{
-				//EM_error(d->pos,"A_varDec: sym:%s type:%s", S_name(d->u.var.var), S_name(d->u.var.typ));
+				log(d->pos,"A_varDec: sym:%s type:%s", S_name(d->u.var.var), S_name(d->u.var.typ));
 			}
 			struct expty init = transExp(venv, tenv, d->u.var.init, level, tl);
 			//printf("finish init\n");
@@ -576,7 +581,7 @@ Tr_exp transDec(S_table venv, S_table tenv, A_dec d, Tr_level level, Temp_label 
 		}
 		//update for lab5, TAB_empty???
 		case A_typeDec:{
-			//EM_error(d->pos, "A_typeDec");
+			log(d->pos, "A_typeDec");
 			TAB_table name_table = TAB_empty();
             A_nametyList types = d->u.type;
             while (types) {
@@ -630,7 +635,7 @@ Tr_exp transDec(S_table venv, S_table tenv, A_dec d, Tr_level level, Temp_label 
 		}
 		//update for lab5
 		case A_functionDec:{
-			//EM_error(d->pos, "A_functionDec");
+			log(d->pos, "A_functionDec");
 			TAB_table name_table = TAB_empty();
 			A_fundecList func = d->u.function;
 			while (func) {
@@ -739,7 +744,7 @@ Ty_ty transTy(S_table tenv, A_ty a){
 	switch(a->kind){
 		//update for lab5
 		case A_nameTy: {
-			//EM_error(a->pos, "A_nameTy");
+			log(a->pos, "A_nameTy");
 			Ty_ty type = S_look(tenv, a->u.name);
 			if (!type) {
 				EM_error(a->pos, "undefined type %s", S_name(a->u.name));
@@ -750,12 +755,12 @@ Ty_ty transTy(S_table tenv, A_ty a){
 		}
 		//update for lab5
 		case A_recordTy:{
-			//EM_error(a->pos, "A_recordTy");
+			log(a->pos, "A_recordTy");
 			return Ty_Record(makeFieldList(tenv, a->u.record));
 		}
 		//update for lab5
 		case A_arrayTy: {
-			//EM_error(a->pos, "A_arrayTy");
+			log(a->pos, "A_arrayTy");
 			Ty_ty type = S_look(tenv, a->u.array);
 			if (!type) {
 				EM_error(a->pos, "undefined type %s", S_name(a->u.array));
