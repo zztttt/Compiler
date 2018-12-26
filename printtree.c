@@ -97,9 +97,9 @@ static void pr_tree_exp(FILE *out, T_exp exp, int d)
   } /* end of switch */
 }
 
-void printStmList (FILE *out, T_stmList stmList) 
+/*void printStmList (FILE *out, T_stmList stmList) 
 {
   for (; stmList; stmList=stmList->tail) {
     pr_stm(out, stmList->head,0); fprintf(out, "\n");
   }
-}
+}*/

@@ -17,4 +17,10 @@ Ty_ty transTy (S_table tenv, A_ty a);
 
 F_fragList SEM_transProg(A_exp exp);
 
+//helper functions
+Ty_ty actual_ty(Ty_ty t);
+int hasLoopVar(S_table venv, A_var v);
+U_boolList makeFormalEscapeList(A_fieldList params);
+Ty_fieldList makeFieldList(S_table tenv, A_fieldList fields);
+Ty_tyList makeFormalTyList(S_table tenv, A_fieldList list);
 #endif

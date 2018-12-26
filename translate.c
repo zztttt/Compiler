@@ -174,7 +174,7 @@ static struct Cx unCx(Tr_exp e){
 }
 
 void Tr_print(Tr_exp e){
-    printStmList(stderr, T_StmList(unNx(e),NULL));
+    //printStmList(stderr, T_StmList(unNx(e),NULL));
 }
 
 
