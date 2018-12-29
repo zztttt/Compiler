@@ -1,0 +1,7 @@
+let
+	var a := 1
+	var b := 2
+in
+	if a then b := a else b := 3;
+	printi(b)
+end
