@@ -11,7 +11,16 @@
 #include "env.h"
 #include "escape.h"
 
+typedef struct escapeEntry_ *escapeEntry;
+struct escapeEntry_ {
+	int depth;
+    bool* escape;
+};
+escapeEntry EscapeEntry(int d, bool *e);
 
+static void traverseExp(S_table, int depth, A_exp);
+static void traverseDec(S_table, int depth, A_dec);
+static void traverseVar(S_table, int depth, A_var);
 
 static void 
 traverseExp(S_table table, int depth, A_exp a){
