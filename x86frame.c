@@ -21,7 +21,7 @@ struct F_frame_ {
 	F_accessList locals;
 
 	//the number of arguments
-	int argSize;
+	int argNum;
 	
 	//the number of local variables
 	int length;
@@ -48,7 +48,7 @@ static F_access InFrame(int offset){
 	ac->u.offset = offset;
 	return ac;
 }   
-int F_getFrameOff(F_access acc){
+int F_offset(F_access acc){
 	return acc->u.offset;
 }
 
@@ -126,13 +126,16 @@ F_accessList F_calleePos(F_frame f){
 F_frame F_newFrame(Temp_label name, U_boolList formals){
 	F_frame f = checked_malloc(sizeof(*f));
 	f->length = 0;
-	int *argsize = checked_malloc(sizeof(int));
-	*argsize = 0;
+	
+	//*argnum = 0;
+	int argnum = 0;
+	int *argnump = checked_malloc(sizeof(int));
+	*argnump = argnum;
 	
 	f->name = name;
-	f->formals = makeFormalsF(f, formals, argsize);
+	f->formals = makeFormalsF(f, formals, argnump);
 	f->locals = NULL;
-	f->argSize = *argsize;
+	f->argNum = argnum;
 	
 
 	f->calleesaves = F_calleePos(f);
@@ -167,34 +170,11 @@ Temp_label F_name(F_frame f){
 F_accessList F_formals(F_frame f){
 	return f->formals;
 }
-int F_len(F_frame f){
+int F_length(F_frame f){
 	return f->length;
 }
 /* IR translation */
-Temp_temp F_FP(void){
-	static Temp_temp fp  = NULL;
-	if(!fp){
-		fp = Temp_newtemp();
-		Temp_enter(F_tempMap, fp, "fp");
-	}
-	return fp;
-}
-Temp_temp F_SP(void){
-	static Temp_temp sp  = NULL;
-	if(!sp){
-		 sp = Temp_newtemp();
-		Temp_enter(F_tempMap, sp, "%rsp");
-	}
-	return sp;
-}
-Temp_temp F_RV(void){
-	static Temp_temp rv = NULL;
-	if(!rv){
-		rv = Temp_newtemp();
-		Temp_enter(F_tempMap, rv, "%rax");
-	}
-	return rv;
-}
+
 Temp_temp F_ARG(int idx){
 	switch(idx){
 		case 0:return F_RDI();
@@ -413,7 +393,31 @@ AS_proc F_procEntryExit3(F_frame frame, AS_instrList body){
 
 	return AS_Proc("", body, "");
 }
-
+//rax, rsp and fp
+Temp_temp F_FP(void){
+	static Temp_temp fp  = NULL;
+	if(!fp){
+		fp = Temp_newtemp();
+		Temp_enter(F_tempMap, fp, "fp");
+	}
+	return fp;
+}
+Temp_temp F_SP(void){
+	static Temp_temp sp  = NULL;
+	if(!sp){
+		 sp = Temp_newtemp();
+		Temp_enter(F_tempMap, sp, "%rsp");
+	}
+	return sp;
+}
+Temp_temp F_RV(void){
+	static Temp_temp rv = NULL;
+	if(!rv){
+		rv = Temp_newtemp();
+		Temp_enter(F_tempMap, rv, "%rax");
+	}
+	return rv;
+}
 //arguments register
 Temp_temp F_RDI(void){
 	static Temp_temp t  = NULL;
