@@ -372,8 +372,8 @@ struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 	clear();
 	//Flowgraph
 	G_graph fg = FG_AssemFlowGraph(il);  /* 10.1 */
-		//G_show(stdout, G_nodes(fg), FG_showInfo);
-		//printf("\n-------====flow graph=====-----\n");
+		G_show(stdout, G_nodes(fg), FG_showInfo);
+		printf("\n-------====flow graph=====-----\n");
 
 	//liveness analysis
 	struct Live_graph lg = Live_liveness(fg);  /* 10.2 */
