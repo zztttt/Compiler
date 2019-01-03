@@ -78,7 +78,7 @@ void Live_prMovs(Live_moveList ml){
 		printf("%s -> %s\n", Temp_look(map, Live_gtemp( ml->src)), Temp_look(map, Live_gtemp( ml->dst)));
 	}
 }
-static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph* cfGraph, G_nodeList* revFlow){
+static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph* cfGraph, G_nodeList* Points){
 	//cfnode -> temp
 	//create empty graph without in/out and edge
 	cnt = 0;
@@ -99,13 +99,13 @@ static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph
 			}
 		}
 		G_enter(liveT, fnode, LiveInfo(NULL, NULL));
-		*revFlow = G_NodeList(fnode, *revFlow);
+		*Points = G_NodeList(fnode, *Points);
 	}
 	//add in/out
 	bool stable = FALSE;
 	while(!stable){
 		stable = TRUE;
-		for(G_nodeList nl = *revFlow; nl; nl = nl->tail){
+		for(G_nodeList nl = *Points; nl; nl = nl->tail){
 			G_node fnode = nl->head;
 
 			liveInfo old = G_look(liveT, fnode);
@@ -131,8 +131,8 @@ static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph
  * 对于传送指令a<-c，如果变量b1...bn在该指令出口处是活跃的，则对每一个不同于c的bi添加冲突边(a,b1)...(a,bn)
  * templist的差操作t1-t2, Temp_tempList subTempList(Temp_tempList t1, Temp_tempList t2) 
  */
-static void makeConflictGraph(TAB_table tn, G_table liveT, Live_moveList* movs, G_nodeList* revFlow){
-	for(G_nodeList np = *revFlow;np;np=np->tail){
+static void makeConflictGraph(TAB_table tn, G_table liveT, Live_moveList* movs, G_nodeList* Points){
+	for(G_nodeList np = *Points;np;np=np->tail){
 		G_node fnode = np->head;
 
 		liveInfo info = G_look(liveT, fnode);
@@ -170,21 +170,21 @@ static void makeConflictGraph(TAB_table tn, G_table liveT, Live_moveList* movs, 
 
 /* Conflict graph -- [node -> temp]*/
 struct Live_graph Live_liveness(G_graph flow) {
-	//your code here.
 	struct Live_graph lg;
 
+	//tables to store datas
 	G_graph cfGraph = G_Graph();
-	G_nodeList revFlow = NULL;
-	G_table liveT = G_empty();
-	//[temp:cfnode]
 	TAB_table tn = TAB_empty();
+	G_table liveT = G_empty();
+	
+	G_nodeList Points = NULL;
 	Live_moveList movs = NULL;	
 
 	//make liveness graph with no edge
-	makeLivenessGraph(tn, liveT, flow, &cfGraph, &revFlow);
+	makeLivenessGraph(tn, liveT, flow, &cfGraph, &Points);
 	
 	//add conflict edges according to [in]
-	makeConflictGraph(tn, liveT, &movs, &revFlow);
+	makeConflictGraph(tn, liveT, &movs, &Points);
 	
 	lg.graph = cfGraph;
 	lg.moves = movs;
