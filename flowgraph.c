@@ -40,11 +40,6 @@ Temp_tempList FG_use(G_node n) {
 	}
 }
 
-bool FG_isMove(G_node n) {
-	AS_instr ins = G_nodeInfo(n);
-	return ins->kind == I_MOVE && strstr(ins->u.MOVE.assem,"movq `s0, `d0");
-}
-
 void FG_showInfo(void *p){
 	AS_instr ins = p;
 	AS_print(stdout, ins, Temp_layerMap(F_tempMap, Temp_name()));
@@ -134,4 +129,9 @@ G_graph FG_AssemFlowGraph(AS_instrList il) {
 	}
 	FG_showInfo(il);
 	return g;
+}
+
+bool FG_isMove(G_node n) {
+	AS_instr ins = G_nodeInfo(n);
+	return ins->kind == I_MOVE && strstr(ins->u.MOVE.assem,"movq `s0, `d0");
 }
