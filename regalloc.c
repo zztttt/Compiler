@@ -89,10 +89,11 @@ static void Push(G_node node, enum State st){
 	}
 	
 }
-/*static bool MoveRelated(G_node node){
-	return inMoveList(node, worklistMoves) || inMoveList(node, activeMoves);
-}*/
+
+
+//function  MoveRelated(n)
 static bool MoveRelated(G_node node){
+	//moveList[n] ^ (activeMoves + worklistMoves) != {}
 	Live_moveList list1 = worklistMoves;
 	Live_moveList list2 = activeMoves;
 	bool res = FALSE;
@@ -109,7 +110,9 @@ static bool MoveRelated(G_node node){
     return res;
 }
 
+//function Adjacent(n)
 static G_nodeList Adjacent(G_node node){
+	//adjList[n]\(selectStack + coaleseedNodes)
 	G_nodeList adj = G_adj(node);
 	G_nodeList locked = NL_Union(nodeStack, coalescedNode);
 	return NL_Minus(adj, locked);
@@ -181,17 +184,20 @@ static bool OK(G_node t, G_node r){
 		|| G_inNodeList(t,precolored)
 		|| G_inNodeList(t, G_adj(r)));
 }
+
+//u in precolored && all Adjacent(v), OK(t, u)
 static bool Check(G_node u, G_node v){
+	bool res = FALSE;
 	if(G_inNodeList(u, precolored)){
-		bool pass = TRUE;
+		res = TRUE;
 		for(G_nodeList nl=Adjacent(v);nl;nl=nl->tail){
 			G_node t = nl->head;
 			if(!OK(t,u)){
-				pass = FALSE;
+				res = FALSE;
 				break;
 			}
+			
 		}
-		if(pass) return TRUE;
 	}
 	else{
 		G_nodeList nodes = NL_Union(Adjacent(u),Adjacent(v));
@@ -201,9 +207,9 @@ static bool Check(G_node u, G_node v){
 			nodeInfo info = G_nodeInfo(n);
 			if(info->degree >= REG_NUM) cnt += 1;
 		}
-		if(cnt < REG_NUM) return TRUE;
+		res = (cnt < REG_NUM)?TRUE:FALSE;
 	}
-	return FALSE;
+	return res;
 }
 static void Combine(G_node u, G_node v){
 	if(G_inNodeList(v, freezeWorkList))
@@ -306,43 +312,59 @@ static void Simplify(){
 		DecrementDegree(nl->head);
 	}
 }
+
+//procedure Coalesce
 static void Coalesce(){
+	//let m(=copy(x,y)) in worklistMoves
 	Live_moveList p = Live_MoveList(worklistMoves->src,worklistMoves->dst,NULL);
-	worklistMoves = worklistMoves->tail;
+	
+	//x<-GetAlias(x)
 	G_node src = GetAlias(p->src);
+	//y<-GetAlias(y)
 	G_node dst = GetAlias(p->dst);
 
 	//Live_prMovs(Live_MoveList(p->src,p->dst,NULL));
 	G_node u,v;
+	//if y in precolored then
 	if(G_inNodeList(src, precolored)){
+		//let(u,v) = (y,x)
 		u = src; v = dst;
 	}
 	else{
+		//else let(u,v) = (x,y)
 		u = dst; v = src;
 	}
-	
+	//worklistMoves <- worklistMoves\{m}
+	worklistMoves = worklistMoves->tail;
+	//if u =v then
 	if(u == v){
-		//printf("3");
+		//coalescedMOves <- coalescedMoves + {m}
 		coalescedMoves = Live_MoveList(p->src, p->dst, coalescedMoves);
+		//AddWorkList(u)
 		AddWorkList(u);
 	}
+	//else if v in precolored || (u, v) in adjSet then
 	else if(G_inNodeList(v, precolored) || G_inNodeList(u, G_adj(v))){
-		//printf("4");
 		constrainedMoves = Live_MoveList(p->src, p->dst, constrainedMoves);
+		//AddWorkList(u)
 		AddWorkList(u);
+		//AddWorkList(v)
 		AddWorkList(v);
 	}
+	//else if u in precolored && (all Adjacent(v), OK(t, u))
+	//		|| u not in precolored && Conservative(Adjacent(u) + Adjacent(v)) then
 	else if(Check(u, v)){
-		//printf("5");
+		//coelescedMoves<-coalescedMoves + {m}
 		coalescedMoves = Live_MoveList(p->src, p->dst, coalescedMoves);
+		//Combine(u, v)
 		Combine(u, v);
+		//AddWorkList(u)
 		AddWorkList(u);
 	}
 	else{
-		//printf("6");
+		//else activeMoves <- activeMoves + {m}
 		activeMoves = Live_MoveList(p->src, p->dst, activeMoves);
 	}
-	//printf("\n");
 }
 static void Freeze(){
 	G_node node = freezeWorkList->head;
