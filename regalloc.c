@@ -16,22 +16,31 @@
 
 const int REG_NUM = 16;
 
-//node set
+//机器寄存器集合，每个寄存器都预先指派了一种颜色
 static G_nodeList precolored = NULL;
+//已成功着色的结点集合
 static G_nodeList coloredNode = NULL;
+//在本轮中要被溢出的结点集合
 static G_nodeList spilledNode = NULL;
+//已合并的寄存器集合
 static G_nodeList coalescedNode = NULL;
 
-//nodeWorklist
+//高度数的结点表
 static G_nodeList spillWorkList = NULL;
+//低度数的与传送结点有关的表
 static G_nodeList freezeWorkList = NULL;
+//低度数的与传送无关的结点表
 static G_nodeList simplifyWorkList = NULL;
 
-//moveList
+//有可能合并的传送指令集合
 static Live_moveList worklistMoves = NULL;
+//已经合并的传送指令集合
 static Live_moveList coalescedMoves = NULL;
+//不再考虑合并的传送指令集合
 static Live_moveList frozenMoves = NULL;
+//源操作数和目标操作数冲突的传送指令集合
 static Live_moveList constrainedMoves = NULL;
+//还未做好合并准备的传送指令集合
 static Live_moveList activeMoves = NULL;
 
 
@@ -80,8 +89,24 @@ static void Push(G_node node, enum State st){
 	}
 	
 }
-static bool MoveRelated(G_node node){
+/*static bool MoveRelated(G_node node){
 	return inMoveList(node, worklistMoves) || inMoveList(node, activeMoves);
+}*/
+static bool MoveRelated(G_node node){
+	Live_moveList list1 = worklistMoves;
+	Live_moveList list2 = activeMoves;
+	bool res = FALSE;
+	for(;list1;list1 = list1->tail){
+        if(node == list1->dst || node == list1->src){
+            res = TRUE;
+        }
+    }
+	for(;list2;list2 = list2->tail){
+        if(node == list2->dst || node == list2->src){
+            res = TRUE;
+        }
+    }
+    return res;
 }
 
 static G_nodeList Adjacent(G_node node){

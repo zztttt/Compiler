@@ -20,14 +20,12 @@ Live_moveList RMrelatedMovs(G_node node, Live_moveList list){
     Live_moveList li = NULL;
     Live_moveList last = NULL;
     for(;list;list = list->tail){
-        if(node == list->dst || node == list->src){
+        if(node == list->src || node == list->dst){
+            //save live_movelist
             li = Live_MoveList(list->src, list->dst, li);
             if(last){
                 last->tail = list->tail;
                 list = last;
-            }
-            else{
-                //rm first mov need to be specially dealed with
             }
         }
         last = list;
