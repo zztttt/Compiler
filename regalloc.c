@@ -125,20 +125,28 @@ static void EnableMoves(G_nodeList nodes){
 		worklistMoves = CatMovList(worklistMoves, rel);
 	}	
 }
-static void DecDegree(G_node node){
+
+//procedure DecrementDegree(m)
+static void DecrementDegree(G_node node){
+	//let d = degree[m]
 	nodeInfo info = G_nodeInfo(node);
 	int d = info->degree;
+	//degree[m] = d -1
 	info->degree = d-1;
+	//if d == K then
 	if(d == REG_NUM){
+		//EnableMoves({m} + Adjcent(m))
 		EnableMoves(G_NodeList(node, Adjacent(node)));
+		//spillWorkList <- spillWorkList\{m}
 		spillWorkList = NL_rmNode(spillWorkList, node);
+		//if MoveRelated(m) then
 		if(MoveRelated(node)){
-			info->stat = FREEZE;
-			Push(node, FREEZE);
+			//freezeWorkList <- freezeWorkList + {m}
+			freezeWorkList=G_NodeList(node, freezeWorkList);
 		}
 		else{
-			info->stat = SIMPLIFY;
-			Push(node, SIMPLIFY);
+			//simplifyWorklist <- simplifyWorklist + {m}
+			simplifyWorkList=G_NodeList(node, simplifyWorkList);
 		}
 	}
 }
@@ -205,7 +213,7 @@ static void Combine(G_node u, G_node v){
 		G_node t = nl->head;
 		if(G_goesTo(u, t) || u == t)continue;
 		G_addEdge(t, u);		
-		DecDegree(t);
+		DecrementDegree(t);
 	}
 	nodeInfo uinfo = G_nodeInfo(u);
 	if(uinfo->degree>=REG_NUM && G_inNodeList(u, freezeWorkList)){
@@ -289,7 +297,7 @@ static void Simplify(){
 	//for m in {Adjacent(n)}
 	for(G_nodeList nl=Adjacent(node);nl;nl=nl->tail){
 		//DecrementDegree(m)
-		DecDegree(nl->head);
+		DecrementDegree(nl->head);
 	}
 }
 static void Coalesce(){
