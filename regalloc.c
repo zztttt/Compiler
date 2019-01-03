@@ -159,26 +159,37 @@ static void DecrementDegree(G_node node){
 		}
 	}
 }
+
+//function GetAlias(n)
 static G_node GetAlias(G_node node){
+	//if n in coalescedNodes then
 	if(G_inNodeList(node, coalescedNode)){
 		nodeInfo info = G_nodeInfo(node);
-		assert(info->alias);
+		//GetAlias(alias[n])
 		return GetAlias(info->alias);
 	}
 	else{
+		//else n
 		return node;
 	}
 }
+
+//PROCEDURE AddWorkList(u)
 static void AddWorkList(G_node node){
 	nodeInfo info = G_nodeInfo(node);
-	if(!G_inNodeList(node, precolored)
-			&& !MoveRelated(node)
-				&& info->degree < REG_NUM){
+	//if(u not in precolored && !MoveRelated(u)) && degree[u] < K then
+	if(!G_inNodeList(node, precolored) && !MoveRelated(node) && info->degree < REG_NUM){
+		//freezeWorkList <- freezeWorklist\{u}
 		freezeWorkList = NL_rmNode(freezeWorkList, node);
-		Push(node, SIMPLIFY);
+		//simplifyWorklist <- simplifyWorklist + {u}
+		simplifyWorkList=G_NodeList(node, simplifyWorkList);
+		//Push(node, SIMPLIFY);
 	}
 }
+
+//function OK(t, r)
 static bool OK(G_node t, G_node r){
+	//degree[t] < K || t in precolored || (t, r) in adjSet
 	nodeInfo tinfo = G_nodeInfo(t);
 	return (tinfo->degree<REG_NUM 
 		|| G_inNodeList(t,precolored)
@@ -211,25 +222,39 @@ static bool Check(G_node u, G_node v){
 	}
 	return res;
 }
+
+//procedure Combine
 static void Combine(G_node u, G_node v){
+	//if v in freezeWorklist then
 	if(G_inNodeList(v, freezeWorkList))
+		//freezeWorklist <- freezeWorklist\{v}
 		freezeWorkList = NL_rmNode(freezeWorkList, v);
 	else
+		//spillWorklist <- spillWorklist\{v}
 		spillWorkList = NL_rmNode(spillWorkList, v);
-
+	//coalescedNodes <- coalescedNodes + {v}
 	coalescedNode = G_NodeList(v, coalescedNode);
+	//alias[v] <- u
 	nodeInfo vinfo = G_nodeInfo(v);
 	vinfo->alias = u;
+	//EnableMoves(v)
 	EnableMoves(G_NodeList(v, NULL));
+	//for t in Adjacent(v)
 	for(G_nodeList nl=Adjacent(v);nl;nl=nl->tail){
 		G_node t = nl->head;
-		if(G_goesTo(u, t) || u == t)continue;
-		G_addEdge(t, u);		
+		//if(G_goesTo(u, t) || u == t)
+		//	continue;
+		//AddEdge(t, u)
+		G_addEdge(t, u);	
+		//DecremetnDegree(t)	
 		DecrementDegree(t);
 	}
 	nodeInfo uinfo = G_nodeInfo(u);
+	//if degree[u] >= K && u in freezeWorklist
 	if(uinfo->degree>=REG_NUM && G_inNodeList(u, freezeWorkList)){
+		//freezeWorklist <- freezeWorklist\{u}
 		freezeWorkList = NL_rmNode(freezeWorkList, u);
+		//spillWorklist <- spillWorklist + {u}
 		spillWorkList = G_NodeList(u, spillWorkList);
 	}	
 }
