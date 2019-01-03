@@ -258,26 +258,36 @@ static void Combine(G_node u, G_node v){
 		spillWorkList = G_NodeList(u, spillWorkList);
 	}	
 }
+
+//procedure FreezeMoves(u)
 static void FreezeMoves(G_node node){
 	Live_moveList ml = RMrelatedMovs(node, activeMoves);
+	//activeMoves <- activeMoves\{m}
 	if(inMoveList(node, activeMoves))
 		activeMoves = activeMoves->tail;
+	//for m(=copy(x, y)) in NodeMoves(u)
 	for(;ml;ml=ml->tail){
 		G_node src = GetAlias(ml->src);
 		G_node dst = GetAlias(ml->dst);
 		G_node v;
+		//if Getalias(y)=GetAlias(u) then
 		if(GetAlias(node) == src)
+			//v <- GetAlias(x)
 			v = dst;
 		else
+			//v<-GetAlias(y)
 			v = src;
+		//forzenMoves <- frozenMoves+{m}
 		frozenMoves = Live_MoveList(ml->src, ml->dst, frozenMoves);
-		
+	
 		nodeInfo vinfo = G_nodeInfo(v);
+		//if NodeMoves(v) = {} && degree[v] < K then
 		if(!G_inNodeList(v,precolored) && !inMoveList(v, activeMoves) && vinfo->degree<REG_NUM){
+			//freezeWorklist <- freezeWorklist\{v}
 			freezeWorkList = NL_rmNode(freezeWorkList, v);
+			//simplifyWorklist <- simplifyWorklist + {v}
 			simplifyWorkList = G_NodeList(v, simplifyWorkList);
 		}
-
 	}
 }
 
@@ -391,47 +401,70 @@ static void Coalesce(){
 		activeMoves = Live_MoveList(p->src, p->dst, activeMoves);
 	}
 }
+
+//procedure Freeze()
 static void Freeze(){
+	//let u in freezeWorklist
 	G_node node = freezeWorkList->head;
+	//freezeWorklist <- freezeWorklist\{u}
 	freezeWorkList = freezeWorkList->tail;
+	//simplifyWorklist <- simplifyWorklist+{u}
 	simplifyWorkList = G_NodeList(node, simplifyWorkList);
+	//FreezeMoves(u)
 	FreezeMoves(node);
 }
+
+//procedure SelectSpill()
 static void SelectSpill(){
-	//blind select
+	//let m in spillWorklist
 	G_node node = spillWorkList->head;
+	//spillWorklist <- spillWorklist\{m}
 	spillWorkList = spillWorkList->tail;
+	//simplifyWorklist <- simplifyWorklist+{m}
 	simplifyWorkList = G_NodeList(node, simplifyWorkList);
+	//FreezeMoves(m)
+	FreezeMoves(node);
 }
+
+//procedure AssignColors()
 static void AssignColor(){
 	COL_map();
+	//while(selectSTACK not empty)
 	for(G_nodeList nl=nodeStack;nl;nl=nl->tail){
+		//let n = pop(selectStack)
 		G_node node = nl->head;
 		//Temp_map map = Temp_layerMap(F_tempMap, Temp_name());
 		//printf("t%s\n", Temp_look(map, Live_gtemp(node)));
+		//okCOLORS <- {0,1,2....K-1}
 		Temp_tempList colors = COL_allColor();
-		
+		//for w in adjList[n]
 		for(G_nodeList adj=G_adj(node);adj;adj=adj->tail){
 			G_node t = adj->head;
 			//printf("\tadj t%s\n", Temp_look(map, Live_gtemp(t)));
 			G_nodeList used = NL_Union(precolored, coloredNode);
+			//if GetAlias(w) in (coloredNodes + precolred) then
 			if(G_inNodeList(GetAlias(t), used)){
+				//okColors <- okColors\{color|GetAlias(w)}
 				colors = COL_rmColor(GetAlias(t), colors);
-				//printf("\t\trm one color\n");
 			}
 		}
-
+		//if okColor != {} then
 		if(!colors){
+			//spilledNodes <- spilledNodes + {n}
 			spilledNode = G_NodeList(node, spilledNode);
 		}
 		else{
-			COL_assignColor(node, colors);
+			//else coloredNodes <- coloredNodes + {n}
 			coloredNode = G_NodeList(node, coloredNode);
+			//let c in okColors, color[n] <-c
+			COL_assignColor(node, colors);
 		}
 	}
 	nodeStack = NULL;
+	//for n in coalescedNodes
 	for(G_nodeList nl=coalescedNode;nl;nl=nl->tail){
 		G_node node = nl->head;
+		//color[n] <- color[GetAlias(n)]
 		COL_sameColor(GetAlias(node), node);
 	}
 }
