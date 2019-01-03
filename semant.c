@@ -37,12 +37,6 @@ struct expty expTy(Tr_exp exp, Ty_ty ty)
 	return e;
 }
 
-
-/*environment*/
-S_table venv;
-S_table tenv;
-int recursive;
-
 /*helper functions in lab4*/
 
 Ty_ty actual_ty(Ty_ty t){
@@ -64,9 +58,6 @@ Ty_fieldList makeFields(S_table tenv, A_fieldList record){
 	if(ty && (ty->kind == Ty_string || ty->kind == Ty_int)){
 		field = Ty_Field(name, ty);			
 	}
-	else if(recursive == 1){
-		field = Ty_Field(name, NULL);
-	}
 	else if(ty && ty->kind == Ty_name){
 		field = Ty_Field(name, ty);
 	}
@@ -86,16 +77,11 @@ Ty_fieldList makeFields(S_table tenv, A_fieldList record){
 /* core functions */
 F_fragList SEM_transProg(A_exp e){
 	//TODO LAB5: do not forget to add the main frame
-	venv = E_base_venv();
-	tenv = E_base_tenv();
-	recursive = 0;
 
 	Temp_label prog = Temp_newlabel();
 	Tr_level l = Tr_outermost();
 
-	struct expty body = transExp(venv, tenv, e, l, prog);
-	
-	//Tr_print(body.exp);
+	struct expty body = transExp(E_base_venv(),E_base_tenv(), e, l, prog);
 
 	Tr_procEntryExit(l, body.exp, NULL);
 	
@@ -103,7 +89,7 @@ F_fragList SEM_transProg(A_exp e){
 }
 
 
-Ty_ty		 transTy (              S_table tenv, A_ty a){
+Ty_ty	transTy (S_table tenv, A_ty a){
 	switch(a->kind){
 		case A_nameTy: {
 			log(a->pos, "A_nameTy");
@@ -170,7 +156,6 @@ Tr_exp transDec(S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label labe
 					EM_error(d->pos, "type not exist");
 					return Tr_nilExp();
 				}
-				//printf("1111\n");
 				type->u.name.ty = transTy(tenv, types->head->ty);
 				types = types->tail;
 			}
