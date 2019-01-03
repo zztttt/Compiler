@@ -193,7 +193,7 @@ Tr_exp transDec(S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label labe
 			return Tr_nilExp();
 		}
 		case A_varDec:{
-			//printf("111\n");
+			log(d->pos, "A-varDec\n");
 			if(!d->u.var.typ){
 				log(d->pos, "A_varDec: sym:%s notype", S_name(d->u.var.var));
 			}
@@ -235,7 +235,6 @@ Tr_exp transDec(S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label labe
 		case A_functionDec:{
 			log(d->pos, "A_functionDec");
 			A_fundecList funcs = d->u.function;
-			//recursive = 1;
 			while(funcs){
 				A_fundec func = funcs->head;
 
@@ -260,7 +259,6 @@ Tr_exp transDec(S_table venv, S_table tenv, A_dec d, Tr_level l, Temp_label labe
 				funcs = funcs->tail;
 			}
 
-			//recursive = 0;
 			funcs = d->u.function;
 			for(; funcs; funcs=funcs->tail){
 				A_fundec func = funcs->head;

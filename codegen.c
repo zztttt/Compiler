@@ -11,6 +11,12 @@
 #include "codegen.h"
 #include "table.h"
 
+#define CODEGEN_DEBUG 0
+
+#define log(...)\
+	if(CODEGEN_DEBUG)\
+		fprintf(stdout, __VA_ARGS__);
+
 //Lab 6: put your code here
 static void emit(AS_instr inst);
 static void munchStm(T_stm stm);
@@ -77,17 +83,21 @@ static void MovOp(Temp_temp src, Temp_temp dst, T_exp e){
 }
 
 static void munchStm(T_stm stm){
+    log("munchStm\n");
     switch(stm->kind){
         case T_SEQ:{
+            log("T_SEQ\n");
             EM_impossible("T_SEQ stm should not exist");
             return;            
         }
         case T_LABEL:{
+            log("T_LABEL\n");
             Temp_label LABEL = stm->u.LABEL;
             emit(AS_Label(Temp_labelstring(LABEL), LABEL));
             return;
         }
         case T_JUMP:{
+            log("T_JUMP\n");
             T_exp expp = stm->u.JUMP.exp; 
             Temp_labelList jumps = stm->u.JUMP.jumps;
             if(expp->kind != T_NAME){
@@ -98,6 +108,7 @@ static void munchStm(T_stm stm){
             return;
         }
         case T_CJUMP:{
+            log("T_CJUMP\n");
             T_relOp op = stm->u.CJUMP.op;            
 			Temp_label t = stm->u.CJUMP.true;
             Temp_temp left = munchExp(stm->u.CJUMP.left);
@@ -121,12 +132,14 @@ static void munchStm(T_stm stm){
             return;
         }
         case T_EXP:{
+            log("T_EXP\n");
             Temp_temp s = munchExp(stm->u.EXP);
             Temp_temp d = Temp_newtemp();
             emit(AS_Move("movq `s0, `d0", Temp_TempList(d,NULL), Temp_TempList(s,NULL)));
             return;
         }
         case T_MOVE:{
+            log("T_MOVE\n");
             Temp_temp s = munchExp(stm->u.MOVE.src);
             T_exp dst = stm->u.MOVE.dst;
             if(dst->kind == T_TEMP){
@@ -184,8 +197,10 @@ static void munchStm(T_stm stm){
 }
 
 static Temp_temp munchExp(T_exp e){
+    log("munchExp\n");
     switch(e->kind){        
         case T_BINOP:{  /*op S, D  :  D = D op S */
+            log("T_BINOP\n");
             T_binOp op = e->u.BINOP.op;
             Temp_temp left = munchExp(e->u.BINOP.left);
             Temp_temp right = munchExp(e->u.BINOP.right);
@@ -219,6 +234,7 @@ static Temp_temp munchExp(T_exp e){
             return left;
         }
         case T_MEM:{
+            log("T_MEM\n");
             T_exp MEM = e->u.MEM;
             Temp_temp dst = Temp_newtemp();
             if(MEM->kind == T_TEMP){
@@ -270,6 +286,7 @@ static Temp_temp munchExp(T_exp e){
             }
         }
         case T_TEMP:{
+            log("T_TEMP\n");
             Temp_temp t = e->u.TEMP;
             if (t == F_FP()){
                 t=RMfp();
@@ -277,12 +294,12 @@ static Temp_temp munchExp(T_exp e){
            return t;
         }
         case T_ESEQ:{
+            log("T_ESEQ\n");
             EM_impossible("T_ESEQ exp should not exist");
             assert(0);
         }
         case T_NAME:{
-            //EM_impossible("T_NAME exp should exist in JUMP/SJUMP/CALL, or string representation wait to be complement");
-            //assert(0);
+            log("t_NAME\n");
             Temp_label NAME = e->u.NAME;
             Temp_temp dst = Temp_newtemp();
             char str[100];
@@ -291,6 +308,7 @@ static Temp_temp munchExp(T_exp e){
             return dst;
         }
 		case T_CONST:{
+            log("T_CONST\n");
             Temp_temp d = Temp_newtemp();
             char cstr[100];
             sprintf(cstr, "movq $%d, `d0", e->u.CONST);
@@ -298,6 +316,7 @@ static Temp_temp munchExp(T_exp e){
             return d;
         }
         case T_CALL:{
+            log("T-CALL\n");
             T_exp fun = e->u.CALL.fun; 
             T_expList args = e->u.CALL.args;
             Temp_tempList regs = munchArgs(0, args);
@@ -314,6 +333,7 @@ static Temp_temp munchExp(T_exp e){
 }
 
 static Temp_tempList munchArgs(int cnt, T_expList args){
+    log("munchArgs\n");
     if(!args)
         return NULL;
     
@@ -354,6 +374,7 @@ static void emit(AS_instr inst) {
 
 
 AS_instrList F_codegen(F_frame f, T_stmList stmList) {
+    log("F_codegen\n");
     asList = NULL;
     Last = NULL;
     AS_instrList list; 

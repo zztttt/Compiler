@@ -9,6 +9,11 @@
 #include "tree.h"
 #include "frame.h"
 
+#define FRAME_DEBUG 0
+
+#define log(...)\
+	if(FRAME_DEBUG)\
+		fprintf(stdout, __VA_ARGS__);
 /*Lab5: Your implementation here.*/
 
 const int F_wordsize = 8;
@@ -124,6 +129,7 @@ F_accessList F_calleePos(F_frame f){
 }
 
 F_frame F_newFrame(Temp_label name, U_boolList formals){
+	log("F_newFrame\n");
 	F_frame f = checked_malloc(sizeof(*f));
 	f->length = 0;
 	
@@ -146,6 +152,7 @@ F_frame F_newFrame(Temp_label name, U_boolList formals){
 
 //locals position wait to be reset
 F_access F_allocLocal(F_frame f, bool escape){
+	log("F_aalocLocal\n");
 	int length = f->length;
 	F_accessList locals = f->locals;
 
@@ -239,6 +246,7 @@ Temp_tempList F_register(){
 }
 
 T_exp F_exp(F_access acc, T_exp framePtr){
+	log("F-exp\n");
 	if(acc->kind == inFrame){
 		int off = acc->u.offset;
 		return T_Mem(T_Binop(T_plus, T_Const(off), framePtr));
@@ -249,12 +257,14 @@ T_exp F_exp(F_access acc, T_exp framePtr){
 }
 
 T_exp F_externalCall(string s, T_expList args){
+	log("F_externalCall\n");
 	return T_Call(T_Name(Temp_namedlabel(s)), args);
 }
 
 
 /* fragment */
 F_frag F_StringFrag(Temp_label label, string str) { 
+	log("F_stringFrag\n");
 	F_frag f = checked_malloc(sizeof(*f));
 	f->kind = F_stringFrag;
 	f->u.stringg.label = label;
@@ -263,7 +273,8 @@ F_frag F_StringFrag(Temp_label label, string str) {
 	return f;                                      
 }                                                     
                                                       
-F_frag F_ProcFrag(T_stm body, F_frame frame) {        
+F_frag F_ProcFrag(T_stm body, F_frame frame) {   
+	log("F_procFrag\n");     
 	F_frag f = checked_malloc(sizeof(*f));
 	f->kind = F_procFrag;
 	f->u.proc.body = body;
@@ -280,6 +291,7 @@ F_fragList F_FragList(F_frag head, F_fragList tail) {
 }                                                     
 
 T_exp F_procChange(F_frame f, T_exp call){
+	log("F_procChange\n");
 	T_exp fp = T_Temp(F_FP());
 	//caller save
 	T_stm save = NULL;
@@ -317,7 +329,7 @@ T_exp F_procChange(F_frame f, T_exp call){
 }
 
 T_stm F_procEntryExit1(F_frame f, T_stm stm){
-	//view change
+	log("F_procEntryExit1\n");
 	T_stm view = NULL;
 	int cnt = 0;
 	T_exp fp = T_Temp(F_FP());
@@ -375,6 +387,7 @@ T_stm F_procEntryExit1(F_frame f, T_stm stm){
 }
 
 AS_instrList F_procEntryExit2(AS_instrList body){
+	log("F_ProcEntryExit2\n");
 	static Temp_tempList returnSink = NULL ;
 	if (!returnSink)  
 		returnSink = Temp_TempList(F_SP(), F_calleeSave());
@@ -383,6 +396,7 @@ AS_instrList F_procEntryExit2(AS_instrList body){
 
 }
 AS_proc F_procEntryExit3(F_frame frame, AS_instrList body){
+	log("F_procEntryExit3\n");
 	int len = frame->length;
 	string fn =  S_name(F_name(frame));
 	char target[100];

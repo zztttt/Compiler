@@ -25,6 +25,6 @@ struct nodeInfo_{
 struct Live_graph Live_liveness(G_graph flow);
 
 void Live_showInfo(void *p);
-void Live_prMovs(Live_moveList ml);
+void Live_printMoveList(Live_moveList ml);
 
 #endif

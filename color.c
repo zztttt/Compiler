@@ -13,18 +13,27 @@
 #include "color.h"
 #include "table.h"
 
+#define COLOR_DEBUG 0
+
+#define log(...)\
+	if(COLOR_DEBUG)\
+		fprintf(stdout, __VA_ARGS__);
+
 static Temp_map coloring = NULL;
 Temp_map COL_map(){	
+	log("COL_map\n");
 	if(!coloring){
 		coloring = Temp_empty();
 	}
 	return coloring;
 }
 void COL_clearMap(){
+	log("COL_clearMap\n");
 	coloring = NULL;
 }
 
 Temp_tempList COL_allColor(){
+	log("COL_allColor\n");
 	Temp_tempList l = NULL;
 	for(Temp_tempList p =F_register();p;p=p->tail){
 		l = Temp_TempList(p->head,l);
@@ -41,6 +50,7 @@ void prTmps(Temp_tempList l){
 	printf("\n");
 }
 Temp_tempList COL_rmColor(G_node t, Temp_tempList l){
+	log("COL_rmColor\n");
 	Temp_temp c = Live_gtemp(t);
 	Temp_map map = Temp_layerMap(coloring, F_tempMap);
 	string color = Temp_look(map, c);
@@ -64,21 +74,18 @@ Temp_tempList COL_rmColor(G_node t, Temp_tempList l){
 	return l;
 }
 void COL_assignColor(G_node t, Temp_tempList colors){
+	log("COL_assignColor\n");
 	string color = Temp_look(F_tempMap, colors->head);
 	assert(color);
 	Temp_temp rr = Live_gtemp(t);
 	Temp_enter(coloring, rr, color);
 }
 void COL_sameColor(G_node from, G_node to){
+	log("COL_sameColor\n");
 	Temp_map map = Temp_layerMap(coloring, F_tempMap);
 	string color = Temp_look(map, Live_gtemp(from));
 	assert(color);
 	Temp_enter(coloring, Live_gtemp(to), color);
 }
 
-struct COL_result COL_color(G_graph ig, Temp_map initial, Temp_tempList regs, Live_moveList moves)
-{
-	//your code here.
-	struct COL_result ret;
-	return ret;
-}
+

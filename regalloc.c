@@ -13,6 +13,12 @@
 #include "table.h"
 #include "flowgraph.h"
 
+#define REGALLOC_DEBUG 0
+
+#define log(...)\
+	if(REGALLOC_DEBUG)\
+		fprintf(stdout, __VA_ARGS__);
+
 const int REG_NUM = 16;
 
 //机器寄存器集合，每个寄存器都预先指派了一种颜色
@@ -83,6 +89,7 @@ void RA_showInfo(void *p){
 		printf("%s\tdegree:%d\t",Temp_look(map, t->reg), t->degree);
 }
 static void clear(){
+	log("clear\n");
 	//node set
 	precolored = NULL;
 	coloredNode = NULL;
@@ -125,6 +132,7 @@ static bool MoveRelated(G_node node){
 
 //function Adjacent(n)
 static G_nodeList Adjacent(G_node node){
+	log("Adjacent\n");
 	//adjList[n]\(selectStack + coaleseedNodes)
 	G_nodeList adj = G_adj(node);
 	G_nodeList locked = G_UnionList(SelectStack, coalescedNode);
@@ -133,6 +141,7 @@ static G_nodeList Adjacent(G_node node){
 
 //procedure EnableMoves
 static void EnableMoves(G_nodeList nodes){
+	log("EnableMoves\n");
 	//for n in nodes
 	for(;nodes;nodes=nodes->tail){
 		G_node node = nodes->head;
@@ -150,6 +159,7 @@ static void EnableMoves(G_nodeList nodes){
 
 //procedure DecrementDegree(m)
 static void DecrementDegree(G_node node){
+	log("DecrementDegree\n");
 	//let d = degree[m]
 	nodeInfo info = G_nodeInfo(node);
 	int d = info->degree;
@@ -175,6 +185,7 @@ static void DecrementDegree(G_node node){
 
 //function GetAlias(n)
 static G_node GetAlias(G_node node){
+	log("GetAlias\n");
 	//if n in coalescedNodes then
 	if(G_inNodeList(node, coalescedNode)){
 		nodeInfo info = G_nodeInfo(node);
@@ -189,6 +200,7 @@ static G_node GetAlias(G_node node){
 
 //PROCEDURE AddWorkList(u)
 static void AddWorkList(G_node node){
+	log("AddWorkList\n");
 	nodeInfo info = G_nodeInfo(node);
 	//if(u not in precolored && !MoveRelated(u)) && degree[u] < K then
 	if(!G_inNodeList(node, precolored) && !MoveRelated(node) && info->degree < REG_NUM){
@@ -238,6 +250,7 @@ static bool Check(G_node u, G_node v){
 
 //procedure Combine
 static void Combine(G_node u, G_node v){
+	log("Combine\n");
 	//if v in freezeWorklist then
 	if(G_inNodeList(v, freezeWorkList))
 		//freezeWorklist <- freezeWorklist\{v}
@@ -274,6 +287,7 @@ static void Combine(G_node u, G_node v){
 
 //procedure FreezeMoves(u)
 static void FreezeMoves(G_node node){
+	log("FreezeMoves\n");
 	Live_moveList ml = RMrelatedMovs(node, activeMoves);
 	//activeMoves <- activeMoves\{m}
 	if(inMoveList(node, activeMoves))
@@ -306,6 +320,7 @@ static void FreezeMoves(G_node node){
 
 //procedure MakeWorkList()
 static void MakeWorkList(G_graph cfgraph){
+	log("MakeWorkList\n");
 	G_nodeList nl = G_nodes(cfgraph);
 	//for n in initial
 	for(;nl;nl=nl->tail){
@@ -339,6 +354,7 @@ static void MakeWorkList(G_graph cfgraph){
 
 //procedure Simplify()
 static void Simplify(){
+	log("Simplify\n");
 	//let n = simplifyWorkList->head
 	G_node node = simplifyWorkList->head;
 	//simplifyWorkList <- simplifyWorklist\{n}
@@ -354,6 +370,7 @@ static void Simplify(){
 
 //procedure Coalesce
 static void Coalesce(){
+	log("Coalesce\n");
 	//let m(=copy(x,y)) in worklistMoves
 	Live_moveList p = Live_MoveList(worklistMoves->src,worklistMoves->dst,NULL);
 	
@@ -362,7 +379,7 @@ static void Coalesce(){
 	//y<-GetAlias(y)
 	G_node dst = GetAlias(p->dst);
 
-	//Live_prMovs(Live_MoveList(p->src,p->dst,NULL));
+	//Live_printMoveList(Live_MoveList(p->src,p->dst,NULL));
 	G_node u,v;
 	//if y in precolored then
 	if(G_inNodeList(src, precolored)){
@@ -409,6 +426,7 @@ static void Coalesce(){
 
 //procedure Freeze()
 static void Freeze(){
+	log("Freeze\n");
 	//let u in freezeWorklist
 	G_node node = freezeWorkList->head;
 	//freezeWorklist <- freezeWorklist\{u}
@@ -421,6 +439,7 @@ static void Freeze(){
 
 //procedure SelectSpill()
 static void SelectSpill(){
+	log("SelectSpill\n");
 	//let m in spillWorklist
 	G_node node = spillWorkList->head;
 	//spillWorklist <- spillWorklist\{m}
@@ -433,6 +452,7 @@ static void SelectSpill(){
 
 //procedure AssignColors()
 static void AssignColor(){
+	log("AssignColor\n");
 	COL_map();
 	//while(selectSTACK not empty)
 	for(G_nodeList nl=SelectStack;nl;nl=nl->tail){
@@ -474,41 +494,23 @@ static void AssignColor(){
 	}
 }
 
-/*
-
-procedure Main()
- 	LivenessAnalysis()
-	Build()
-	MakeWorklist()
-	repeat
-	    if simplifyWorklist != {} then Simplify()
-	    else if worklistMoves != {} then Coalesce()
-	    else if freezeWorklist != {} then Freeze()
-	    else if spillWorklist != {} then SelectSpill()
-	until simplifyWorklist = {} && worklistMove={} &&
-	         freezeWorklis={} && spillWorklist={}
-	AssignColor()
-	if spilledNodes != {} then
-	    RewriteProgram(spilledNodes)
-	    Main() 
-
-*/
 void printMovs(){
 	printf("\n-------==== spillworklist =====-----\n");
 	G_show(stdout, spillWorkList, RA_showInfo);	
 	printf("\n-------==== stack =====-----\n");
 	G_show(stdout, SelectStack, RA_showInfo);	
 	printf("\n-------==== coalescedMoves =====-----\n");
-	Live_prMovs(coalescedMoves);
+	Live_printMoveList(coalescedMoves);
 	printf("\n-------==== frozenMoves =====-----\n");
-	Live_prMovs(frozenMoves);
+	Live_printMoveList(frozenMoves);
 	printf("\n-------==== constrainedMoves =====-----\n");
-	Live_prMovs(constrainedMoves);
+	Live_printMoveList(constrainedMoves);
 	printf("\n-------==== activeMoves =====-----\n");
-	Live_prMovs(activeMoves);
+	Live_printMoveList(activeMoves);
 }
 
 struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
+	log("RA_regAlloc\n");
 	clear();
 	//Flowgraph
 	G_graph fg = FG_AssemFlowGraph(il);  /* 10.1 */
@@ -519,12 +521,12 @@ struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 	struct Live_graph lg = Live_liveness(fg);  /* 10.2 */
 	//G_show(stdout, G_nodes(lg.graph), Live_showInfo);
 	//printf("\n-------==== CF graph=====-----\n");
-	//Live_prMovs(lg.moves);
+	//Live_printMoveList(lg.moves);
 
 	worklistMoves = lg.moves;
 	MakeWorkList(lg.graph);
 	//G_show(stdout, simplifyWorkList, RA_showInfo);
-	//Live_prMovs(worklistMoves);
+	//Live_printMoveList(worklistMoves);
 	//printf("\n-------==== init =====-----\n");
 	
 	//repeat

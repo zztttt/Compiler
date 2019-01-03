@@ -11,7 +11,11 @@
 #include "liveness.h"
 #include "table.h"
 
+#define LIVENESS_DEBUG 0
 
+#define log(...)\
+	if(LIVENESS_DEBUG)\
+		fprintf(stdout, __VA_ARGS__);
 //data structure
 typedef struct liveInfo_ *liveInfo;
 struct liveInfo_{
@@ -59,6 +63,7 @@ static bool inPool(Temp_temp t){
 
 //procedure
 Temp_temp Live_gtemp(G_node n) {
+	log("Live_gtemp\n");
 	//your code here.
 	nodeInfo p = G_nodeInfo(n);
 	Temp_temp t = p->reg;
@@ -71,13 +76,14 @@ void Live_showInfo(void *p){
 	printf("%s\t",Temp_look(map, t->reg));
 }
 
-void Live_prMovs(Live_moveList ml){
+void Live_printMoveList(Live_moveList ml){
 	Temp_map map = Temp_layerMap(F_tempMap, Temp_name());
 	for(;ml;ml=ml->tail){
 		printf("%s -> %s\n", Temp_look(map, Live_gtemp( ml->src)), Temp_look(map, Live_gtemp( ml->dst)));
 	}
 }
 static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph* cfGraph, G_nodeList* Points){
+	log("makeLivenessGraph\n");
 	//create empty graph without in/out and edge
 	cnt = 0;
 	for(G_nodeList nodes = G_nodes(flow);nodes;nodes=nodes->tail){
@@ -130,6 +136,7 @@ static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph
  * templist的差操作t1-t2, Temp_tempList subTempList(Temp_tempList t1, Temp_tempList t2) 
  */
 static void makeConflictGraph(TAB_table tn, G_table liveT, Live_moveList* movs, G_nodeList* Points){
+	log("makeConflictGraph\n");
 	for(G_nodeList np = *Points;np;np=np->tail){
 		G_node fnode = np->head;
 
@@ -168,6 +175,7 @@ static void makeConflictGraph(TAB_table tn, G_table liveT, Live_moveList* movs, 
 
 /* Conflict graph -- [node -> temp]*/
 struct Live_graph Live_liveness(G_graph flow) {
+	log("Live_liveness\n");
 	struct Live_graph lg;
 
 	//tables to store datas
