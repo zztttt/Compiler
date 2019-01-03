@@ -82,7 +82,7 @@ void Live_prMovs(Live_moveList ml){
 		printf("%s -> %s\n", Temp_look(map, Live_gtemp( ml->src)), Temp_look(map, Live_gtemp( ml->dst)));
 	}
 }
-static void genGraph(G_table tn, G_table liveT, G_graph flow, G_graph* cfGraph, G_nodeList* revFlow){
+static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph* cfGraph, G_nodeList* revFlow){
 	//cfnode -> temp
 	cnt = 0;
 	for(G_nodeList nodes=G_nodes(flow);nodes;nodes=nodes->tail){
@@ -91,25 +91,47 @@ static void genGraph(G_table tn, G_table liveT, G_graph flow, G_graph* cfGraph, 
 			Temp_temp t = tp->head;
 			if(!inPool(t)){
 				G_node cfnode = G_Node(*cfGraph, NodeInfo(t,0,0));
-				G_enter(tn, t, cfnode);
+				TAB_enter(tn, t, cfnode);
 			}
 		}
 		for(Temp_tempList tp = FG_use(fnode);tp;tp=tp->tail){
 			Temp_temp t = tp->head;
 			if(!inPool(t)){
 				G_node cfnode = G_Node(*cfGraph,NodeInfo(t,0,0));
-				G_enter(tn, t, cfnode);
+				TAB_enter(tn, t, cfnode);
 			}
 		}
 		G_enter(liveT, fnode, LiveInfo(NULL, NULL));
 		*revFlow = G_NodeList(fnode, *revFlow);
 	}
+	//add in/out
+	/*bool stable = FALSE;
+	while(!stable){
+		stable = TRUE;
+		for(G_nodeList nl = *revFlow; nl; nl = nl->tail){
+			G_node fnode = nl->head;
+
+			liveInfo old = G_look(liveT, fnode);
+			Temp_tempList out = old->out;
+			for(G_nodeList succs = G_succ(fnode); succs; succs = succs->tail){
+				G_node succ = succs->head;
+				liveInfo tmp = G_look(liveT, succ);
+				out = Temp_UnionCombine(out, tmp->in);
+			}
+			Temp_tempList in = Temp_Union(FG_use(fnode), Temp_Minus(out, FG_def(fnode)));
+			if(!Temp_Equal(in, old->in) || !Temp_Equal(out, old->out)){
+				stable = FALSE;
+			}
+			G_enter(liveT, fnode, LiveInfo(in, out));
+		}
+	}*/
 }
+
 static void loopAnalyse(G_table liveT, G_nodeList* revFlow){
 	bool stable = FALSE;
 	while(!stable){
 		stable = TRUE;
-		for(G_nodeList np = *revFlow;np;np=np->tail){
+		for(G_nodeList np = *revFlow; np; np = np->tail){
 			G_node fnode = np->head;
 
 			liveInfo old = G_look(liveT, fnode);
@@ -133,7 +155,7 @@ static void loopAnalyse(G_table liveT, G_nodeList* revFlow){
 		}
 	}
 }
-static void addConf(G_table tn, G_table liveT, G_table movs, G_nodeList* revFlow){
+static void addConf(TAB_table tn, G_table liveT, Live_moveList* movs, G_nodeList* revFlow){
 	for(G_nodeList np = *revFlow;np;np=np->tail){
 		G_node fnode = np->head;
 
@@ -145,20 +167,20 @@ static void addConf(G_table tn, G_table liveT, G_table movs, G_nodeList* revFlow
 			live = Temp_Minus(live, FG_use(fnode));
 
 			Temp_temp dst = FG_def(fnode)->head;
-			G_node d = G_look(tn, dst);
+			G_node d = TAB_look(tn, dst);
 			Temp_temp src = FG_use(fnode)->head;
-			G_node s = G_look(tn, src);
+			G_node s = TAB_look(tn, src);
 
-			movs = Live_MoveList(s, d, movs);
+			*movs = Live_MoveList(s, d, *movs);
 		}
 
 		//add conflicts 
 		Temp_tempList def = FG_def(fnode);
 		live = Temp_Union(live, def);
 		for(Temp_tempList p1=def;p1;p1=p1->tail){
-			G_node cf1 = G_look(tn, p1->head);
+			G_node cf1 = TAB_look(tn, p1->head);
 			for(Temp_tempList p2=live;p2;p2=p2->tail){
-				G_node cf2 = G_look(tn, p2->head);
+				G_node cf2 = TAB_look(tn, p2->head);
 				if(G_goesTo(cf2, cf1) || cf1 == cf2)continue;
 				G_addEdge(cf1, cf2);
 			}
@@ -176,17 +198,17 @@ struct Live_graph Live_liveness(G_graph flow) {
 	G_nodeList revFlow = NULL;
 	G_table liveT = G_empty();
 	//[temp:cfnode]
-	G_table tn = G_empty();
+	TAB_table tn = TAB_empty();
 	Live_moveList movs = NULL;	
 
-	//generate a empty conflict graph with no edge in it 
-	genGraph(tn, liveT, flow, &cfGraph, &revFlow);
+	//make liveness graph with no edge
+	makeLivenessGraph(tn, liveT, flow, &cfGraph, &revFlow);
 	
-	//loop find in/out
+	//add in/out
 	loopAnalyse(liveT, &revFlow);
 	
 	//add conflict edges according to [in]
-	addConf(tn, liveT, movs, &revFlow);
+	addConf(tn, liveT, &movs, &revFlow);
 	
 	lg.graph = cfGraph;
 	lg.moves = movs;
