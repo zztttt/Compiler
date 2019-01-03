@@ -276,13 +276,19 @@ static void MakeWorkList(G_graph cfgraph){
 		//Push(node, st);
 	}
 }
+
+//procedure Simplify()
 static void Simplify(){
+	//let n = simplifyWorkList->head
 	G_node node = simplifyWorkList->head;
+	//simplifyWorkList <- simplifyWorklist\{n}
 	simplifyWorkList = simplifyWorkList->tail;	
 	nodeInfo info = G_nodeInfo(node);
-	info->stat = STACK;
-	Push(node, STACK);
+	//push(n, selectStack)
+	nodeStack = G_NodeList(node, nodeStack);
+	//for m in {Adjacent(n)}
 	for(G_nodeList nl=Adjacent(node);nl;nl=nl->tail){
+		//DecrementDegree(m)
 		DecDegree(nl->head);
 	}
 }
@@ -421,36 +427,38 @@ struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 	//G_show(stdout, simplifyWorkList, RA_showInfo);
 	//Live_prMovs(worklistMoves);
 	//printf("\n-------==== init =====-----\n");
-		
-
-	bool empty = FALSE;
-	int cnt = 0;
-	while(!empty){
-		empty = TRUE;
+	
+	//repeat
+	while(1){
+		//if simplifyWorklist !={} then Simplify()
 		if(simplifyWorkList){
-			empty = FALSE;
 			Simplify();
 		}
+		//else if worklistMoves != {} then Coalesce()
 		else if(worklistMoves){
-			empty = FALSE;
 			Coalesce();
 		}
+		//else if freezeWorkList != {} then Freeze()
 		else if(freezeWorkList){
-			empty = FALSE;
 			Freeze();
 		}
+		//else if spillWorkList != {} then SelectSpill()
 		else if(spillWorkList){
-			empty = FALSE;
 			SelectSpill();
 		}
+		//until simplifyWorklist = {} && worklistMoves = {} && freezeWorklist = {} && spillWorklist = {}
+		else
+			break;
 	}
 	//printf("\n-------==== loop over =====-----\n");
 	//printMovs();
-		
+	
+	//AssignColor()
 	AssignColor();
 
 	Temp_map map = Temp_layerMap(COL_map(),Temp_layerMap(F_tempMap, Temp_name()));
 	
+	//if spilledNodes != {} then RewriteProgram(spilledNodes);Main()
 	if(spilledNode){
 		printf("\n-------==== spillnode =====-----\n");
 		G_show(stdout, spilledNode, RA_showInfo);
@@ -459,18 +467,17 @@ struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 		printf("\n");
 		//AS_printInstrList (stdout, nil, map);
 		return RA_regAlloc(f, nil);
-		assert(0);
 	}
-
-	AS_rewrite(il, map);
-		//printf("BEGIN function\n");
-		AS_printInstrList (stdout, il, map);
- 		printf("\n-------==== after RA =====-----\n");
-					
-
 	struct RA_result ret;
 	ret.coloring = COL_map();
 	ret.il=il;
+
+	//AS_rewrite(il, map);
+	//printf("BEGIN function\n");
+	//AS_printInstrList (stdout, il, map);
+	printf("\n-------==== after RA =====-----\n");
+					
+	
 
 	return ret;
 }
