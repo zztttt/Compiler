@@ -51,7 +51,11 @@ AS_instr AS_Move(string a, Temp_tempList d, Temp_tempList s) {
   p->u.MOVE.src=s; 
   return p;
 }
-
+AS_targetsList AS_TargetsList(AS_targets head, AS_targetsList tail)
+{AS_targetsList p = (AS_targetsList) checked_malloc (sizeof *p);
+ p->head=head; p->tail=tail;
+ return p;
+}
 AS_instrList AS_InstrList(AS_instr head, AS_instrList tail)
 {AS_instrList p = (AS_instrList) checked_malloc (sizeof *p);
  p->head=head; p->tail=tail;
