@@ -169,4 +169,61 @@ void *G_look(G_table t, G_node node)
   return TAB_look(t, node);
 }
 
+G_nodeList G_UnionList(G_nodeList A, G_nodeList B){
+    G_nodeList list = NULL;
+    for(;A;A=A->tail){
+        G_node n = A->head;
+        list = G_NodeList(n, list);
+    }
+    for(;B;B=B->tail){
+        G_node n = B->head;
+        if(!G_inNodeList(n, A)){
+            list = G_NodeList(n, list);
+        }
+    }
+    return list;
+}
+
+G_nodeList G_InterList(G_nodeList A, G_nodeList B){
+    G_nodeList list = NULL;
+    for(;B;B=B->tail){
+        G_node n = B->head;
+        if(G_inNodeList(n, A)){
+            list = G_NodeList(n, list);
+        }
+    }
+    return list;
+}
+
+G_nodeList G_MinusList(G_nodeList A, G_nodeList B){
+    G_nodeList list = NULL;
+    for(;A;A=A->tail){
+        G_node n = A->head;
+        if(!G_inNodeList(n, B)){
+            list = G_NodeList(n, list);
+        }
+    }
+    return list;
+}
+
+
+G_nodeList G_RmNode(G_nodeList li, G_node node){
+    G_nodeList p = li;
+    G_nodeList last = NULL;
+    while(p){
+        if(p->head == node){
+            if(last){
+                last->tail = p->tail;
+                break;
+            }
+            else{
+                li = li->tail;
+                break;
+            }
+        }
+        last = p;
+        p = p->tail;
+    }
+    return li;
+}
 
