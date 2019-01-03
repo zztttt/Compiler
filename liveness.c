@@ -11,6 +11,7 @@
 #include "liveness.h"
 #include "table.h"
 
+
 //data structure
 typedef struct liveInfo_ *liveInfo;
 struct liveInfo_{
@@ -42,9 +43,6 @@ Live_moveList Live_MoveList(G_node src, G_node dst, Live_moveList tail) {
 	return lm;
 }
 
-
-
-
 //helper
 static int pool[100];
 static int cnt;
@@ -60,7 +58,6 @@ static bool inPool(Temp_temp t){
 	return FALSE;
 }
 
-
 //procedure
 Temp_temp Live_gtemp(G_node n) {
 	//your code here.
@@ -68,7 +65,6 @@ Temp_temp Live_gtemp(G_node n) {
 	Temp_temp t = p->reg;
 	return t;
 }
-
 
 void Live_showInfo(void *p){
 	nodeInfo t = p;
@@ -84,20 +80,21 @@ void Live_prMovs(Live_moveList ml){
 }
 static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph* cfGraph, G_nodeList* revFlow){
 	//cfnode -> temp
+	//create empty graph without in/out and edge
 	cnt = 0;
-	for(G_nodeList nodes=G_nodes(flow);nodes;nodes=nodes->tail){
+	for(G_nodeList nodes = G_nodes(flow);nodes;nodes=nodes->tail){
 		G_node fnode = nodes->head;
-		for(Temp_tempList tp = FG_def(fnode);tp;tp=tp->tail){
-			Temp_temp t = tp->head;
+		for(Temp_tempList defs = FG_def(fnode); defs; defs = defs->tail){
+			Temp_temp t = defs->head;
 			if(!inPool(t)){
 				G_node cfnode = G_Node(*cfGraph, NodeInfo(t,0,0));
 				TAB_enter(tn, t, cfnode);
 			}
 		}
-		for(Temp_tempList tp = FG_use(fnode);tp;tp=tp->tail){
-			Temp_temp t = tp->head;
+		for(Temp_tempList uses = FG_use(fnode); uses; uses = uses->tail){
+			Temp_temp t = uses->head;
 			if(!inPool(t)){
-				G_node cfnode = G_Node(*cfGraph,NodeInfo(t,0,0));
+				G_node cfnode = G_Node(*cfGraph, NodeInfo(t,0,0));
 				TAB_enter(tn, t, cfnode);
 			}
 		}
@@ -105,7 +102,7 @@ static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph
 		*revFlow = G_NodeList(fnode, *revFlow);
 	}
 	//add in/out
-	/*bool stable = FALSE;
+	bool stable = FALSE;
 	while(!stable){
 		stable = TRUE;
 		for(G_nodeList nl = *revFlow; nl; nl = nl->tail){
@@ -124,45 +121,24 @@ static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph
 			}
 			G_enter(liveT, fnode, LiveInfo(in, out));
 		}
-	}*/
-}
-
-static void loopAnalyse(G_table liveT, G_nodeList* revFlow){
-	bool stable = FALSE;
-	while(!stable){
-		stable = TRUE;
-		for(G_nodeList np = *revFlow; np; np = np->tail){
-			G_node fnode = np->head;
-
-			liveInfo old = G_look(liveT, fnode);
-			assert(old);
-
-			Temp_tempList out = old->out;
-			for(G_nodeList sp=G_succ(fnode);sp;sp=sp->tail){
-				G_node succ = sp->head;
-				liveInfo tmp = G_look(liveT, succ);
-				assert(tmp);
-				out = Temp_UnionCombine(out, tmp->in);
-			}
-			Temp_tempList in = Temp_Union(FG_use(fnode), Temp_Minus(out, FG_def(fnode)));
-			//Temp_tempList in = Minus(Union(out, FG_use(fnode)), FG_def(fnode));
-
-			if(!Temp_Equal(in, old->in) || !Temp_Equal(out, old->out)){
-				stable = FALSE;
-			}
-
-			G_enter(liveT, fnode, LiveInfo(in, out));
-		}
 	}
 }
-static void addConf(TAB_table tn, G_table liveT, Live_moveList* movs, G_nodeList* revFlow){
+
+/*
+ * 目标：make conflict graph 
+ * 将所有结点加入tempTab中
+ * 对于任何对变量a定值的非传送指令，以及在该指令处是出口活跃的变量b1...bn，添加冲突边(a,b1)...(a,bn)
+ * 对于传送指令a<-c，如果变量b1...bn在该指令出口处是活跃的，则对每一个不同于c的bi添加冲突边(a,b1)...(a,bn)
+ * templist的差操作t1-t2, Temp_tempList subTempList(Temp_tempList t1, Temp_tempList t2) 
+ */
+static void makeConflictGraph(TAB_table tn, G_table liveT, Live_moveList* movs, G_nodeList* revFlow){
 	for(G_nodeList np = *revFlow;np;np=np->tail){
 		G_node fnode = np->head;
 
 		liveInfo info = G_look(liveT, fnode);
 		Temp_tempList live = info->out;
 
-		//move
+		//judge is move
 		if(FG_isMove(fnode)){
 			live = Temp_Minus(live, FG_use(fnode));
 
@@ -175,13 +151,16 @@ static void addConf(TAB_table tn, G_table liveT, Live_moveList* movs, G_nodeList
 		}
 
 		//add conflicts 
-		Temp_tempList def = FG_def(fnode);
-		live = Temp_Union(live, def);
-		for(Temp_tempList p1=def;p1;p1=p1->tail){
+		Temp_tempList defs = FG_def(fnode);
+		//out and defs
+		live = Temp_Union(live, defs);
+		for(Temp_tempList p1 = defs; p1 ; p1 = p1->tail){
 			G_node cf1 = TAB_look(tn, p1->head);
-			for(Temp_tempList p2=live;p2;p2=p2->tail){
+			for(Temp_tempList p2 = live; p2 ; p2 = p2->tail){
 				G_node cf2 = TAB_look(tn, p2->head);
-				if(G_goesTo(cf2, cf1) || cf1 == cf2)continue;
+				/* Tell if there is an edge from "from" to "to" */
+				if(G_goesTo(cf2, cf1) || cf1 == cf2)
+					continue;
 				G_addEdge(cf1, cf2);
 			}
 		}
@@ -204,11 +183,8 @@ struct Live_graph Live_liveness(G_graph flow) {
 	//make liveness graph with no edge
 	makeLivenessGraph(tn, liveT, flow, &cfGraph, &revFlow);
 	
-	//add in/out
-	loopAnalyse(liveT, &revFlow);
-	
 	//add conflict edges according to [in]
-	addConf(tn, liveT, &movs, &revFlow);
+	makeConflictGraph(tn, liveT, &movs, &revFlow);
 	
 	lg.graph = cfGraph;
 	lg.moves = movs;
