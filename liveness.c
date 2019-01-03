@@ -26,11 +26,10 @@ liveInfo LiveInfo(Temp_tempList in, Temp_tempList out){
 	return i;
 }
 
-nodeInfo NodeInfo(Temp_temp t, int d, enum State s){
+nodeInfo NodeInfo(Temp_temp t, int d){
 	nodeInfo i = checked_malloc(sizeof(*i));
 	i->degree = d;
 	i->reg = t;
-	i->stat = s;
 	i->alias = NULL;
 	return i;
 }
@@ -79,7 +78,6 @@ void Live_prMovs(Live_moveList ml){
 	}
 }
 static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph* cfGraph, G_nodeList* Points){
-	//cfnode -> temp
 	//create empty graph without in/out and edge
 	cnt = 0;
 	for(G_nodeList nodes = G_nodes(flow);nodes;nodes=nodes->tail){
@@ -87,14 +85,14 @@ static void makeLivenessGraph(TAB_table tn, G_table liveT, G_graph flow, G_graph
 		for(Temp_tempList defs = FG_def(fnode); defs; defs = defs->tail){
 			Temp_temp t = defs->head;
 			if(!inPool(t)){
-				G_node cfnode = G_Node(*cfGraph, NodeInfo(t,0,0));
+				G_node cfnode = G_Node(*cfGraph, NodeInfo(t,0));
 				TAB_enter(tn, t, cfnode);
 			}
 		}
 		for(Temp_tempList uses = FG_use(fnode); uses; uses = uses->tail){
 			Temp_temp t = uses->head;
 			if(!inPool(t)){
-				G_node cfnode = G_Node(*cfGraph, NodeInfo(t,0,0));
+				G_node cfnode = G_Node(*cfGraph, NodeInfo(t,0));
 				TAB_enter(tn, t, cfnode);
 			}
 		}

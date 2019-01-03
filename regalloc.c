@@ -44,7 +44,7 @@ static Live_moveList activeMoves = NULL;
 
 
 //stack
-static G_nodeList nodeStack;
+static G_nodeList SelectStack;
 
 //helper
 bool inMoveList(G_node node, Live_moveList list){
@@ -77,10 +77,10 @@ void RA_showInfo(void *p){
 	nodeInfo t = p;
 	Temp_map map = Temp_layerMap(COL_map(),Temp_layerMap(F_tempMap, Temp_name()));
 	if(t->alias){
-		printf("%s\t stat:%d\tdegree:%d\talias:%s\t",Temp_look(map, t->reg), t->stat, t->degree,Temp_look(map, Live_gtemp(t->alias)));
+		//printf("%s\t stat:%d\tdegree:%d\talias:%s\t",Temp_look(map, t->reg), t->stat, t->degree,Temp_look(map, Live_gtemp(t->alias)));
 	}
 	else
-		printf("%s\t stat:%d\tdegree:%d\t",Temp_look(map, t->reg), t->stat, t->degree);
+		printf("%s\tdegree:%d\t",Temp_look(map, t->reg), t->degree);
 }
 static void clear(){
 	//node set
@@ -101,7 +101,7 @@ static void clear(){
 	constrainedMoves = NULL;
 	activeMoves = NULL;
 
-	nodeStack = NULL;
+	SelectStack = NULL;
 }
 
 //function  MoveRelated(n)
@@ -127,7 +127,7 @@ static bool MoveRelated(G_node node){
 static G_nodeList Adjacent(G_node node){
 	//adjList[n]\(selectStack + coaleseedNodes)
 	G_nodeList adj = G_adj(node);
-	G_nodeList locked = G_UnionList(nodeStack, coalescedNode);
+	G_nodeList locked = G_UnionList(SelectStack, coalescedNode);
 	return G_MinusList(adj, locked);
 }
 
@@ -144,10 +144,6 @@ static void EnableMoves(G_nodeList nodes){
 			activeMoves = activeMoves->tail;
 			//workListMoves <- workListMoves + {m}
 			worklistMoves = Live_MoveList(rel->src, rel->dst, worklistMoves);
-			//for(; t; t = t->tail){}
-			//t->tail = rel;
-			//worklistMoves = 
-			//worklistMoves = CatMovList(worklistMoves, rel);
 		}
 	}	
 }
@@ -232,7 +228,8 @@ static bool Check(G_node u, G_node v){
 		for(;nodes;nodes=nodes->tail){
 			G_node n = nodes->head;
 			nodeInfo info = G_nodeInfo(n);
-			if(info->degree >= REG_NUM) cnt += 1;
+			if(info->degree >= REG_NUM) 
+				cnt += 1;
 		}
 		res = (cnt < REG_NUM)?TRUE:FALSE;
 	}
@@ -319,7 +316,7 @@ static void MakeWorkList(G_graph cfgraph){
 		info->degree = degree;
 		//find hard register
 		if(Temp_look(F_tempMap, info->reg)){
-			info->stat = PRECOLORED;
+			//info->stat = PRECOLORED;
 			info->degree = __INT_MAX__;
 			precolored = G_NodeList(node, precolored);
 			continue;
@@ -347,7 +344,7 @@ static void Simplify(){
 	//simplifyWorkList <- simplifyWorklist\{n}
 	simplifyWorkList = simplifyWorkList->tail;	
 	nodeInfo info = G_nodeInfo(node);
-	nodeStack = G_NodeList(node, nodeStack);
+	SelectStack = G_NodeList(node, SelectStack);
 	//for m in {Adjacent(n)}
 	for(G_nodeList nl=Adjacent(node);nl;nl=nl->tail){
 		//DecrementDegree(m)
@@ -387,6 +384,7 @@ static void Coalesce(){
 	}
 	//else if v in precolored || (u, v) in adjSet then
 	else if(G_inNodeList(v, precolored) || G_inNodeList(u, G_adj(v))){
+		//constrainedMoves <- constrainedMoves+{m}
 		constrainedMoves = Live_MoveList(p->src, p->dst, constrainedMoves);
 		//AddWorkList(u)
 		AddWorkList(u);
@@ -437,7 +435,7 @@ static void SelectSpill(){
 static void AssignColor(){
 	COL_map();
 	//while(selectSTACK not empty)
-	for(G_nodeList nl=nodeStack;nl;nl=nl->tail){
+	for(G_nodeList nl=SelectStack;nl;nl=nl->tail){
 		//let n = pop(selectStack)
 		G_node node = nl->head;
 		//Temp_map map = Temp_layerMap(F_tempMap, Temp_name());
@@ -467,7 +465,7 @@ static void AssignColor(){
 			COL_assignColor(node, colors);
 		}
 	}
-	nodeStack = NULL;
+	SelectStack = NULL;
 	//for n in coalescedNodes
 	for(G_nodeList nl=coalescedNode;nl;nl=nl->tail){
 		G_node node = nl->head;
@@ -499,7 +497,7 @@ void printMovs(){
 	printf("\n-------==== spillworklist =====-----\n");
 	G_show(stdout, spillWorkList, RA_showInfo);	
 	printf("\n-------==== stack =====-----\n");
-	G_show(stdout, nodeStack, RA_showInfo);	
+	G_show(stdout, SelectStack, RA_showInfo);	
 	printf("\n-------==== coalescedMoves =====-----\n");
 	Live_prMovs(coalescedMoves);
 	printf("\n-------==== frozenMoves =====-----\n");
