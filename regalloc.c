@@ -114,15 +114,21 @@ static G_nodeList Adjacent(G_node node){
 	G_nodeList locked = NL_Union(nodeStack, coalescedNode);
 	return NL_Minus(adj, locked);
 }
+
+//procedure EnableMoves
 static void EnableMoves(G_nodeList nodes){
+	//for n in nodes
 	for(;nodes;nodes=nodes->tail){
 		G_node node = nodes->head;
+		//for m in NodeMoves(n)
 		Live_moveList rel = RMrelatedMovs(node, activeMoves);
-		//deal with first-mov-related err
+		//if m in activeMoves then
 		if(inMoveList(node, activeMoves)){
+			//activeMoves <- activeMoves\{m}
 			activeMoves = activeMoves->tail;
+			//workListMoves <- workListMoves + {m}
+			worklistMoves = CatMovList(worklistMoves, rel);
 		}
-		worklistMoves = CatMovList(worklistMoves, rel);
 	}	
 }
 
