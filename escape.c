@@ -24,7 +24,6 @@ static void traverseExp(S_table table, int depth, A_exp a){
 		}
 		case A_callExp:{
 			A_expList args = a->u.call.args;
-
 			for(A_expList exps=args;exps;exps=exps->tail){
 					A_exp param = exps->head;
 					traverseExp(table, depth, param);
