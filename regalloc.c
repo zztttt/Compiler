@@ -241,29 +241,39 @@ static void FreezeMoves(G_node node){
 //core procedure
 static void MakeWorkList(G_graph cfgraph){
 	G_nodeList nl = G_nodes(cfgraph);
+	//for n in initial
 	for(;nl;nl=nl->tail){
+		//initial = initial\{n}
 		G_node node = nl->head;
 		nodeInfo info = G_nodeInfo(node);
-		int degree = G_degree(node);
+		int degree = G_degree(node);/* Tell how many edges lead to or from "n" */
 		info->degree = degree;
+		//find hard register
 		if(Temp_look(F_tempMap, info->reg)){
 			info->stat = PRECOLORED;
 			info->degree = 9999;
-			Push(node, PRECOLORED);
+			//Push(node, PRECOLORED);
+			precolored = G_NodeList(node, precolored);
 			continue;
 		}		
 		enum State st;
 		if(degree >= REG_NUM){
+			//if degree[n] >= K then spillWorklist <- spillworkList + {n}
 			st = SPILL;
+			spillWorkList=G_NodeList(node, spillWorkList);
 		}
 		else if(MoveRelated(node)){
+			//else if MoveRelated(n)
 			st = FREEZE;
+			freezeWorkList=G_NodeList(node, freezeWorkList);
 		}
 		else{
+			//else simplifyWorklist <- simplifyWorklist + {n}
 			st = SIMPLIFY;
+			simplifyWorkList=G_NodeList(node, simplifyWorkList);
 		}
-		info->stat = st;
-		Push(node, st);
+		//info->stat = st;
+		//Push(node, st);
 	}
 }
 static void Simplify(){
@@ -397,20 +407,20 @@ struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 	clear();
 	//Flowgraph
 	G_graph fg = FG_AssemFlowGraph(il);  /* 10.1 */
-		G_show(stdout, G_nodes(fg), FG_showInfo);
-		printf("\n-------====flow graph=====-----\n");
+	//G_show(stdout, G_nodes(fg), FG_showInfo);
+	//printf("\n-------====flow graph=====-----\n");
 
 	//liveness analysis
 	struct Live_graph lg = Live_liveness(fg);  /* 10.2 */
-		//G_show(stdout, G_nodes(lg.graph), Live_showInfo);
-		//printf("\n-------==== CF graph=====-----\n");
-		//Live_prMovs(lg.moves);
+	//G_show(stdout, G_nodes(lg.graph), Live_showInfo);
+	//printf("\n-------==== CF graph=====-----\n");
+	//Live_prMovs(lg.moves);
 
 	worklistMoves = lg.moves;
 	MakeWorkList(lg.graph);
-		//G_show(stdout, simplifyWorkList, RA_showInfo);
-		//Live_prMovs(worklistMoves);
-		//printf("\n-------==== init =====-----\n");
+	//G_show(stdout, simplifyWorkList, RA_showInfo);
+	//Live_prMovs(worklistMoves);
+	//printf("\n-------==== init =====-----\n");
 		
 
 	bool empty = FALSE;
