@@ -20,8 +20,8 @@ F_frame F_newFrame(Temp_label name, U_boolList formals);
 Temp_label F_name(F_frame f);
 F_accessList F_formals(F_frame f);
 F_access F_allocLocal(F_frame f, bool escape);
-int F_len(F_frame f);
-int F_getFrameOff(F_access acc);
+int F_length(F_frame f);
+int F_offset(F_access acc);
 
 /* temp map*/
 Temp_map F_tempMap;
@@ -30,8 +30,25 @@ Temp_map F_tempMap;
 Temp_temp F_FP(void);//frame ptr
 Temp_temp F_SP(void);//stack ptr
 Temp_temp F_RV(void);//return value
-Temp_temp F_ARG(int idx);//func arg_i
+//caller saved
+Temp_temp F_RBX(void);
+Temp_temp F_RCX(void);
+Temp_temp F_RDX(void);
+Temp_temp F_RSI(void);
+Temp_temp F_RDI(void);
+Temp_temp F_RBP(void);
+Temp_temp F_R8(void);
+Temp_temp F_R9(void);
+//callee saved
+Temp_temp F_R10(void);
+Temp_temp F_R11(void);
+Temp_temp F_R12(void);
+Temp_temp F_R13(void);
+Temp_temp F_R14(void);
+Temp_temp F_R15(void);
 
+//help func for register
+Temp_temp F_ARG(int idx);//func arg_i
 Temp_tempList F_Args();//func regs
 Temp_tempList F_callerSave();//callersave regs
 Temp_tempList F_calleeSave();//calleesave regs

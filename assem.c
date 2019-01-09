@@ -51,7 +51,11 @@ AS_instr AS_Move(string a, Temp_tempList d, Temp_tempList s) {
   p->u.MOVE.src=s; 
   return p;
 }
-
+AS_targetsList AS_TargetsList(AS_targets head, AS_targetsList tail)
+{AS_targetsList p = (AS_targetsList) checked_malloc (sizeof *p);
+ p->head=head; p->tail=tail;
+ return p;
+}
 AS_instrList AS_InstrList(AS_instr head, AS_instrList tail)
 {AS_instrList p = (AS_instrList) checked_malloc (sizeof *p);
  p->head=head; p->tail=tail;
@@ -175,7 +179,7 @@ AS_proc AS_Proc(string p, AS_instrList b, string e)
 }
 
 
-//my part
+//my code here
 void AS_rewrite(AS_instrList iList, Temp_map m){
   AS_instrList p = iList;
   AS_instrList last = NULL;
@@ -240,7 +244,7 @@ AS_instrList AS_rewriteSpill(F_frame f, AS_instrList il, G_nodeList spills){
     targets = Temp_TempList(t, targets);
     TAB_enter(tab, t, F_allocLocal(f, TRUE));
   }
-  int flen = F_len(f) * F_wordsize;
+  int flen = F_length(f) * F_wordsize;
   AS_instrList newil = NULL;
   for(AS_instrList p=il;p;p=p->tail){
     AS_instr ins = p->head;
@@ -261,7 +265,7 @@ AS_instrList AS_rewriteSpill(F_frame f, AS_instrList il, G_nodeList spills){
             Temp_temp n = Temp_newtemp();
             Temp_replace(t, n, src);
             F_access pos = TAB_look(tab, t);
-            int off = F_getFrameOff(pos);
+            int off = F_offset(pos);
             char mov[100];
             sprintf(mov, "movq %d(`s0), `d0",flen+off);
             AS_instr i = AS_Move(String(mov),Temp_TempList(n,NULL),Temp_TempList(F_SP(),NULL));
@@ -276,7 +280,7 @@ AS_instrList AS_rewriteSpill(F_frame f, AS_instrList il, G_nodeList spills){
             Temp_temp n = Temp_newtemp();
             Temp_replace(t, n, dst);
             F_access pos = TAB_look(tab, t);
-            int off = F_getFrameOff(pos);
+            int off = F_offset(pos);
             char mov[100];
             sprintf(mov, "movq `s0, %d(`s1)",flen+off);
             AS_instr i = AS_Move(String(mov),NULL,Temp_TempList(n,Temp_TempList(F_SP(),NULL)));
@@ -290,7 +294,8 @@ AS_instrList AS_rewriteSpill(F_frame f, AS_instrList il, G_nodeList spills){
         newil = AS_splice(newil, ff);
         break;
       }
-      default:assert(0);
+      default:
+        assert(0);
     }
     
   }

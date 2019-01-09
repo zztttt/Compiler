@@ -4,9 +4,9 @@
 #include <string.h>
 
 
-long *initArray(int size, int init)
+int *initArray(int size, int init)
 {int i;
- long *a = (long *)malloc(size*sizeof(long));
+ int *a = (int *)malloc(size*sizeof(long));
  for(i=0;i<size;i++) a[i]=init;
  return a;
 }

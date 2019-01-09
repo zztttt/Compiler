@@ -9,6 +9,11 @@
 #include "tree.h"
 #include "frame.h"
 
+#define FRAME_DEBUG 0
+
+#define log(...)\
+	if(FRAME_DEBUG)\
+		fprintf(stdout, __VA_ARGS__);
 /*Lab5: Your implementation here.*/
 
 const int F_wordsize = 8;
@@ -21,7 +26,7 @@ struct F_frame_ {
 	F_accessList locals;
 
 	//the number of arguments
-	int argSize;
+	int argNum;
 	
 	//the number of local variables
 	int length;
@@ -48,7 +53,7 @@ static F_access InFrame(int offset){
 	ac->u.offset = offset;
 	return ac;
 }   
-int F_getFrameOff(F_access acc){
+int F_offset(F_access acc){
 	return acc->u.offset;
 }
 
@@ -124,15 +129,19 @@ F_accessList F_calleePos(F_frame f){
 }
 
 F_frame F_newFrame(Temp_label name, U_boolList formals){
+	log("F_newFrame\n");
 	F_frame f = checked_malloc(sizeof(*f));
 	f->length = 0;
-	int *argsize = checked_malloc(sizeof(int));
-	*argsize = 0;
+	
+	//*argnum = 0;
+	int argnum = 0;
+	int *argnump = checked_malloc(sizeof(int));
+	*argnump = argnum;
 	
 	f->name = name;
-	f->formals = makeFormalsF(f, formals, argsize);
+	f->formals = makeFormalsF(f, formals, argnump);
 	f->locals = NULL;
-	f->argSize = *argsize;
+	f->argNum = argnum;
 	
 
 	f->calleesaves = F_calleePos(f);
@@ -143,6 +152,7 @@ F_frame F_newFrame(Temp_label name, U_boolList formals){
 
 //locals position wait to be reset
 F_access F_allocLocal(F_frame f, bool escape){
+	log("F_aalocLocal\n");
 	int length = f->length;
 	F_accessList locals = f->locals;
 
@@ -167,72 +177,19 @@ Temp_label F_name(F_frame f){
 F_accessList F_formals(F_frame f){
 	return f->formals;
 }
-int F_len(F_frame f){
+int F_length(F_frame f){
 	return f->length;
 }
 /* IR translation */
-Temp_temp F_FP(void){
-	static Temp_temp fp  = NULL;
-	if(!fp){
-		fp = Temp_newtemp();
-		Temp_enter(F_tempMap, fp, "fp");
-	}
-	return fp;
-}
-Temp_temp F_SP(void){
-	static Temp_temp sp  = NULL;
-	if(!sp){
-		 sp = Temp_newtemp();
-		Temp_enter(F_tempMap, sp, "%rsp");
-	}
-	return sp;
-}
-Temp_temp F_RV(void){
-	static Temp_temp rv = NULL;
-	if(!rv){
-		rv = Temp_newtemp();
-		Temp_enter(F_tempMap, rv, "%rax");
-	}
-	return rv;
-}
+
 Temp_temp F_ARG(int idx){
-	static Temp_temp r0 = NULL;
-	static Temp_temp r1 = NULL;
-	static Temp_temp r2 = NULL;
-	static Temp_temp r3 = NULL;
-	static Temp_temp r4 = NULL;
-	static Temp_temp r5 = NULL;
-	if(!r0){
-		r0 = Temp_newtemp();
-		Temp_enter(F_tempMap, r0, "%rdi");
-	}
-	if(!r1){
-		r1 = Temp_newtemp();
-		Temp_enter(F_tempMap, r1, "%rsi");
-	}
-	if(!r2){
-		r2 = Temp_newtemp();
-		Temp_enter(F_tempMap, r2, "%rdx");
-	}
-	if(!r3){
-		r3 = Temp_newtemp();
-		Temp_enter(F_tempMap, r3, "%rcx");
-	}
-	if(!r4){
-		r4 = Temp_newtemp();
-		Temp_enter(F_tempMap, r4, "%r8");
-	}
-	if(!r5){
-		r5 = Temp_newtemp();
-		Temp_enter(F_tempMap, r5, "%r9");
-	}
 	switch(idx){
-		case 0:return r0;
-		case 1:return r1;
-		case 2:return r2;
-		case 3:return r3;
-		case 4:return r4;
-		case 5:return r5;
+		case 0:return F_RDI();
+		case 1:return F_RSI();
+		case 2:return F_RDX();
+		case 3:return F_RCX();
+		case 4:return F_R8();
+		case 5:return F_R9();
 		default:assert(0);
 	}
 }
@@ -250,14 +207,11 @@ Temp_tempList F_Args(){
 }
 Temp_tempList F_callerSave(){
 	static Temp_tempList callerSave = NULL;
-	static Temp_temp r10 = NULL;
-	static Temp_temp r11 = NULL;
 	if(!callerSave){
-		r10 = Temp_newtemp();
-		Temp_enter(F_tempMap, r10, "%r10");
-		r11 = Temp_newtemp();
-		Temp_enter(F_tempMap, r11, "%r11");
-		callerSave = Temp_catList(F_Args(), Temp_TempList(r10, Temp_TempList(r11, NULL)));
+
+		callerSave = Temp_TempList(F_R10(),
+						Temp_TempList(F_R11(),
+							F_Args()));
 	}
 	return callerSave;
 }
@@ -271,24 +225,12 @@ Temp_tempList F_calleeSave(){
 	static Temp_temp rbp = NULL;
 	
 	if(!calleeSave){
-		r12 = Temp_newtemp();
-		Temp_enter(F_tempMap, r12, "%r12");
-		r13 = Temp_newtemp();
-		Temp_enter(F_tempMap, r13, "%r13");
-		r14 = Temp_newtemp();
-		Temp_enter(F_tempMap, r14, "%r14");
-		r15 = Temp_newtemp();
-		Temp_enter(F_tempMap, r15, "%r15");
-		rbx = Temp_newtemp();
-		Temp_enter(F_tempMap, rbx, "%rbx");
-		rbp = Temp_newtemp();
-		Temp_enter(F_tempMap, rbp, "%rbp");
-		calleeSave = Temp_TempList(r12, 
-						Temp_TempList(r13,
-							Temp_TempList(r14, 
-								Temp_TempList(r15, 
-									Temp_TempList(rbx,
-										Temp_TempList(rbp, NULL))))));
+		calleeSave = Temp_TempList(F_R12(), 
+						Temp_TempList(F_R13(),
+							Temp_TempList(F_R14(), 
+								Temp_TempList(F_R15(), 
+									Temp_TempList(F_RBX(),
+										Temp_TempList(F_RBP(), NULL))))));
 	}
 	return calleeSave;
 }
@@ -304,6 +246,7 @@ Temp_tempList F_register(){
 }
 
 T_exp F_exp(F_access acc, T_exp framePtr){
+	log("F-exp\n");
 	if(acc->kind == inFrame){
 		int off = acc->u.offset;
 		return T_Mem(T_Binop(T_plus, T_Const(off), framePtr));
@@ -314,12 +257,14 @@ T_exp F_exp(F_access acc, T_exp framePtr){
 }
 
 T_exp F_externalCall(string s, T_expList args){
+	log("F_externalCall\n");
 	return T_Call(T_Name(Temp_namedlabel(s)), args);
 }
 
 
 /* fragment */
 F_frag F_StringFrag(Temp_label label, string str) { 
+	log("F_stringFrag\n");
 	F_frag f = checked_malloc(sizeof(*f));
 	f->kind = F_stringFrag;
 	f->u.stringg.label = label;
@@ -328,7 +273,8 @@ F_frag F_StringFrag(Temp_label label, string str) {
 	return f;                                      
 }                                                     
                                                       
-F_frag F_ProcFrag(T_stm body, F_frame frame) {        
+F_frag F_ProcFrag(T_stm body, F_frame frame) {   
+	log("F_procFrag\n");     
 	F_frag f = checked_malloc(sizeof(*f));
 	f->kind = F_procFrag;
 	f->u.proc.body = body;
@@ -345,6 +291,7 @@ F_fragList F_FragList(F_frag head, F_fragList tail) {
 }                                                     
 
 T_exp F_procChange(F_frame f, T_exp call){
+	log("F_procChange\n");
 	T_exp fp = T_Temp(F_FP());
 	//caller save
 	T_stm save = NULL;
@@ -379,11 +326,10 @@ T_exp F_procChange(F_frame f, T_exp call){
 				T_Eseq(T_Move(T_Temp(t), call),
 					T_Eseq(restore, T_Temp(t))));
 	return e;
-
 }
 
 T_stm F_procEntryExit1(F_frame f, T_stm stm){
-	//view change
+	log("F_procEntryExit1\n");
 	T_stm view = NULL;
 	int cnt = 0;
 	T_exp fp = T_Temp(F_FP());
@@ -396,8 +342,7 @@ T_stm F_procEntryExit1(F_frame f, T_stm stm){
 			case 2://rdx
 			case 3://rcx
 			case 4://r8
-			case 5:view = T_Seq(T_Move(argpos,T_Temp(F_ARG(cnt))),
-								view);break;//r9
+			case 5:view = T_Seq(T_Move(argpos,T_Temp(F_ARG(cnt))),view);break;//r9
 			default:{
 				int off = (cnt-6+1)*F_wordsize ;
 				view = T_Seq(
@@ -440,7 +385,9 @@ T_stm F_procEntryExit1(F_frame f, T_stm stm){
 	}
 	return T_Seq(save,T_Seq(view, T_Seq(stm, restore)));
 }
+
 AS_instrList F_procEntryExit2(AS_instrList body){
+	log("F_ProcEntryExit2\n");
 	static Temp_tempList returnSink = NULL ;
 	if (!returnSink)  
 		returnSink = Temp_TempList(F_SP(), F_calleeSave());
@@ -449,6 +396,7 @@ AS_instrList F_procEntryExit2(AS_instrList body){
 
 }
 AS_proc F_procEntryExit3(F_frame frame, AS_instrList body){
+	log("F_procEntryExit3\n");
 	int len = frame->length;
 	string fn =  S_name(F_name(frame));
 	char target[100];
@@ -459,4 +407,143 @@ AS_proc F_procEntryExit3(F_frame frame, AS_instrList body){
 
 	return AS_Proc("", body, "");
 }
-
+//rax, rsp and fp
+Temp_temp F_FP(void){
+	static Temp_temp fp  = NULL;
+	if(!fp){
+		fp = Temp_newtemp();
+		Temp_enter(F_tempMap, fp, "fp");
+	}
+	return fp;
+}
+Temp_temp F_SP(void){
+	static Temp_temp sp  = NULL;
+	if(!sp){
+		 sp = Temp_newtemp();
+		Temp_enter(F_tempMap, sp, "%rsp");
+	}
+	return sp;
+}
+Temp_temp F_RV(void){
+	static Temp_temp rv = NULL;
+	if(!rv){
+		rv = Temp_newtemp();
+		Temp_enter(F_tempMap, rv, "%rax");
+	}
+	return rv;
+}
+//arguments register
+Temp_temp F_RDI(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%rdi");
+	}
+	return t;
+}
+Temp_temp F_RSI(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%rsi");
+	}
+	return t;
+}
+Temp_temp F_RDX(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%rdx");
+	}
+	return t;
+}
+Temp_temp F_RCX(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%rcx");
+	}
+	return t;
+}
+Temp_temp F_R8(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%r8");
+	}
+	return t;
+}
+Temp_temp F_R9(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%r9");
+	}
+	return t;
+}
+//caller saved (not include args reg)
+Temp_temp F_R10(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%r10");
+	}
+	return t;
+}
+Temp_temp F_R11(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%r11");
+	}
+	return t;
+}
+//callee saved register
+Temp_temp F_R12(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%r12");
+	}
+	return t;
+}
+Temp_temp F_R13(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%r13");
+	}
+	return t;
+}
+Temp_temp F_R14(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%r14");
+	}
+	return t;
+}
+Temp_temp F_R15(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%r15");
+	}
+	return t;
+}
+Temp_temp F_RBX(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%rbx");
+	}
+	return t;
+}
+Temp_temp F_RBP(void){
+	static Temp_temp t  = NULL;
+	if(!t){
+		t = Temp_newtemp();
+		Temp_enter(F_tempMap, t, "%rbp");
+	}
+	return t;
+}

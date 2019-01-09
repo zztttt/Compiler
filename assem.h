@@ -8,8 +8,14 @@
 
 #include "graph.h"
 
-typedef struct {Temp_labelList labels;} *AS_targets;
+//typedef struct {Temp_labelList labels;} *AS_targets;
+typedef struct AS_targets_ *AS_targets;
+struct AS_targets_ {Temp_labelList labels;};
 AS_targets AS_Targets(Temp_labelList labels);
+
+typedef struct AS_targetsList_ *AS_targetsList;
+struct AS_targetsList_ {AS_targets head; AS_targetsList tail;};
+AS_targetsList AS_TargetsList(AS_targets head, AS_targetsList tail);
 
 typedef struct AS_instr_ *AS_instr;
 struct AS_instr_ { enum {I_OPER, I_LABEL, I_MOVE} kind;
